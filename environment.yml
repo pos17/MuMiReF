@@ -1,0 +1,20 @@
+name: MuMiReF
+channels:
+  - defaults  # prefer installing packages from conda-main over conda-forge, will install Intel MKL for numpy)
+  - conda-forge  # preferring conda-forge would install OpenBLAS for numpy
+dependencies:
+  - matplotlib
+  - numpy=1.19
+  - pip
+#  - psutil  # for adjusting process priority, currently not used
+  - pyfftw  # only on conda-forge
+  - pyserial >=3.4
+  - python =3.8
+  - scipy >=0.16
+  - pip:
+    - jack-client >=0.4.4
+    - python-osc
+    - pysofaconventions >=0.1.5
+    - soundfile >=0.10.2
+    - samplerate
+    - sound-field-analysis >=2021.2.4
