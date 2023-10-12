@@ -56,3 +56,41 @@ def calculate_peak(data_td, is_level=False):
         # peak[np.isnan(peak)] = np.NINF  # transform zeros into -infinity
         peak[np.isnan(peak)] = -200  # transform zeros into -200 dB
     return peak
+
+def transform_into_state(state, logger=None):
+    """
+    Parameters
+    ----------
+    state : bool, int, float, str or None
+        state value in compatible format for which a mapping will be achieved, if an invalid value
+        is given a warning will be logged and `None` returned
+    logger : logging.Logger, optional
+        instance to provide identical logging behaviour as the calling process
+
+    Returns
+    -------
+    bool or None
+        state value as either True, False or None
+    """
+    if state is None or isinstance(state, bool):
+        return state
+
+    # parse str
+    if isinstance(state, str):
+        # noinspection PyUnresolvedReferences
+        return transform_str2bool(state.strip())
+
+    # parse int and float
+    if isinstance(state, (int, float)):
+        state = int(state)
+        if state == 1:
+            return True
+        if state == 0:
+            return False
+        if state == -1:
+            return None
+
+    # no match found
+    log_str = f'unknown state "{state}"'
+    logger.warning(log_str) if logger else print(log_str, file=sys.stderr)
+    return None

@@ -1,6 +1,6 @@
 import logging
 
-from . import config, mp_context, process_logger, tools
+from . import system_config, mp_context, tools, process_logger
 
 
 class SubProcess(mp_context.Process):
@@ -23,6 +23,7 @@ class SubProcess(mp_context.Process):
     def __init__(
         self,
         name,
+        OSC_port,
         is_daemon_process=False,
         is_disable_file_logger=False,
         is_disable_logger=False,
@@ -50,6 +51,7 @@ class SubProcess(mp_context.Process):
         # initialize attributes
         self._osc_client = None
         self._osc_name = None
+        self.OSC_port = OSC_port
 
         # initialize logger
         self._logger = process_logger.setup(self.name, is_disable_file_logger)
@@ -61,13 +63,13 @@ class SubProcess(mp_context.Process):
 
     def _init_osc_client(self):
         """Initialize OSC client specific attributes to open port sending status data."""
-        if not config.REMOTE_OSC_PORT:
+        if not self.OSC_port:
             return
 
         from pythonosc import udp_client
 
         address = "127.0.0.1"
-        port = config.REMOTE_OSC_PORT + 1
+        port = self.OSC_port
         self._osc_client = udp_client.SimpleUDPClient(address, port)
 
         self._osc_name = tools.transform_into_osc_target(self.name)

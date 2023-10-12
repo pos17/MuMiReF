@@ -1,26 +1,43 @@
+clients_num: 5
+BLOCK_LENGTH: 4096
 microphones: 
-  - name: mic1
-    starting_channel: 1
-    ending_channel: 8
-    angle: 0
-    osc_port: 5005
-  - name: mic2
-    starting_channel: 9
-    ending_channel: 16
-    angle: 0
-    osc_port: 5006
-  - name: mic3
-    starting_channel: 17
-    ending_channel: 24
-    angle: 0
-    osc_port: 5007
-  - name: mic4
-    starting_channel: 25
-    ending_channel: 32
-    angle: 0
-    osc_port: 5008
-  - name: mic5
-    starting_channel: 33
-    ending_channel: 40
-    angle: 0
-    osc_port: 5009
+  - 
+      name: mic1
+      starting_input_channel: 0
+      input_channel_count: 4
+      starting_output_channel: 20
+      output_channel_count: 4
+      angle: 0
+      osc_port: 5005
+  - 
+      name: mic2
+      starting_input_channel: 4
+      input_channel_count: 4
+      starting_output_channel: 24
+      output_channel_count: 4
+      angle: 0
+      osc_port: 5006
+  - 
+      name: mic3
+      starting_input_channel: 8
+      input_channel_count: 4
+      starting_output_channel: 28
+      output_channel_count: 4
+      angle: 0
+      osc_port: 5007
+  - 
+      name: mic4
+      starting_input_channel: 12
+      input_channel_count: 4
+      starting_output_channel: 32
+      output_channel_count: 4
+      angle: 0
+      osc_port: 5008
+  - 
+      name: mic5
+      starting_input_channel: 16
+      input_channel_count: 4
+      starting_output_channel: 36
+      output_channel_count: 4
+      angle: 0
+      osc_port: 5009
