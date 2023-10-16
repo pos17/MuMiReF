@@ -1,6 +1,8 @@
 from . import mp_context, tools
 
 
+BLOCK_LENGTH = None
+
 # ########################## #
 #  ! PERFORMANCE SETTINGS !  #
 # ########################## #

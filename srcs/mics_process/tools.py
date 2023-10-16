@@ -322,10 +322,10 @@ def plot_ir_and_tf(
             )
             axes[ch, td_col].tick_params(which="minor", length=0)
             if is_draw_grid:
-                from . import config
+                from . import system_config
 
                 length_2 = 2 ** np.ceil(np.log2(length))  # next power of 2
-                if length > config.BLOCK_LENGTH:
+                if length > system_config.BLOCK_LENGTH:
                     axes[ch, td_col].set_xticks(
                         np.arange(
                             0,
@@ -335,7 +335,7 @@ def plot_ir_and_tf(
                         minor=False,
                     )
                     axes[ch, td_col].set_xticks(
-                        np.arange(0, length + 1, config.BLOCK_LENGTH), minor=True
+                        np.arange(0, length + 1, system_config.BLOCK_LENGTH), minor=True
                     )
                     axes[ch, td_col].grid(
                         True, which="both", axis="x", color="r", alpha=0.4
@@ -440,11 +440,11 @@ def export_plot(figure, name, logger=None, file_type="png"):
 
     # store into logging directory if no path is given
     if os.path.sep not in os.path.relpath(name):
-        from . import config
+        from . import system_config
 
-        if config.LOGGING_PATH is None:
+        if system_config.LOGGING_PATH is None:
             return
-        name = os.path.join(config.LOGGING_PATH, name)
+        name = os.path.join(system_config.LOGGING_PATH, name)
     # store all requested file types
     for ending in re.split(r"[,.;:|/\-+]+", file_type):
         file = f"{name}{os.path.extsep}{ending}"

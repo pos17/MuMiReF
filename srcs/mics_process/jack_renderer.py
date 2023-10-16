@@ -1,4 +1,5 @@
 
+from time import altzone
 from . import Convolver, FilterSet, tools
 from .convolver import AdjustableFdConvolver, AdjustableShConvolver
 from .filter_set import FilterSetMiro, FilterSetShConfig, FilterSetSofa
@@ -30,6 +31,8 @@ class JackRenderer(JackClient):
         sh_is_enforce_pinv=False,
         ir_trunc_db=None,
         is_prevent_resampling=False,
+        azim_deg=0,
+        elevs_deg = 0,
         *args,
         **kwargs,
     ):
@@ -82,6 +85,8 @@ class JackRenderer(JackClient):
             sh_is_enforce_pinv=sh_is_enforce_pinv,
             ir_trunc_db=ir_trunc_db,
             is_prevent_resampling=is_prevent_resampling,
+            azim_deg = azim_deg,
+            elevs_deg = elevs_deg
         )
     
     def _init_convolver(
@@ -94,6 +99,8 @@ class JackRenderer(JackClient):
         sh_is_enforce_pinv,
         ir_trunc_db,
         is_prevent_resampling,
+        azim_deg,
+        elevs_deg
     ):
         """
         Initialize `_convolver` specific attributes by also loading the necessary `FilterSet`.
@@ -128,6 +135,7 @@ class JackRenderer(JackClient):
             file_type=filter_type,
             sh_max_order=sh_max_order,
             sh_is_enforce_pinv=sh_is_enforce_pinv,
+
         )
         if filter_set is None:
             # no filter name or filter type given
@@ -150,7 +158,9 @@ class JackRenderer(JackClient):
             filter_set=filter_set,
             block_length=self._client.blocksize,
             source_positions=source_positions,
-            shared_tracker_data=shared_tracker_data,
+            ## shared_tracker_data=shared_tracker_data,
+            azim_deg=azim_deg,
+            elevs_deg=elevs_deg
         )
         if type(self._convolver) == AdjustableFdConvolver and type(filter_set) in (
             FilterSetMiro,

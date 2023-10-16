@@ -29,7 +29,8 @@ def main_renderer():
         hrir_file,
         hrir_delay,
         sh_max_order,
-        ir_truncation_level
+        ir_truncation_level,
+        azim_deg
     ):
 
         new_jack_renderer = JackRenderer(
@@ -47,6 +48,8 @@ def main_renderer():
             is_main_client=True,
             is_measure_levels=True,
             is_single_precision=system_config.IS_SINGLE_PRECISION,
+            azim_deg=azim_deg,
+            elevs_deg=0
         )
 
         server_input_ports = new_jack_renderer.get_server_ports(is_audio=True,is_input=True)
@@ -124,6 +127,8 @@ def main_renderer():
     ir_truncation_level = mics_config["IR_TRUNCATION_LEVEL"]
     microphones = mics_config["microphones"]
     jack_renderers = []
+
+    system_config.BLOCK_LENGTH = BLOCK_LENGTH
     for i in range(renderers_num):
         name = microphones[i]["name"]
         OSC_port = microphones[i]["osc_port"]
@@ -131,6 +136,7 @@ def main_renderer():
         input_channel_count = microphones[i]["input_channel_count"]
         starting_output_channel = microphones[i]["starting_output_channel"]
         output_channel_count = microphones[i]["output_channel_count"]
+        angle= microphones[i]["angle"]
         hrir_type = microphones[i]["hrir_type"]
         hrir_file = microphones[i]["hrir_file"]
         hrir_delay = microphones[i]["hrir_delay"]
@@ -148,7 +154,8 @@ def main_renderer():
                 hrir_file,
                 hrir_delay,
                 sh_max_order,
-                ir_truncation_level
+                ir_truncation_level,
+                azim_deg=angle
             )                             
         )
         
