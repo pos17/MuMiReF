@@ -1,11 +1,33 @@
 from . import mp_context, tools
 
 
+# ########################## #
+#  ! PERFORMANCE SETTINGS !  #
+# ########################## #
+
+IS_SINGLE_PRECISION = True
+"""If all signal generation and processing should be done in single precision (`numpy32` and
+`complex64`) instead of double precision (`float64` and `complex128`). """
+
+
+IS_PYFFTW_MODE = True  # True leads to the best performance so far
+"""If `pyfftw` package (wrapper for FFTW library) should be used instead of `numpy` for all
+real-time DFT operations. In case `pyfftw` is not used, all related tasks like loading/saving and
+pre-calculating FFTW wisdom will be skipped. """
+
+
+
+
 # ################# #
 #  ! DO NOT EDIT !  #
 # ################# #
 
 
+
+IS_DEBUG_MODE = tools.get_is_debug()
+"""If the application is run in a debugging mode. When execution is paused this is used so
+certain processes relying on real time execution do not raise errors. Also this is used to make
+use of breakpoints in certain functions before they get released in a separate process. """
 
 IS_RUNNING = mp_context.Event()
 """If the application is running and rendering audio at the moment. This needs to be set after
