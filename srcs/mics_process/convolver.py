@@ -1,9 +1,10 @@
 
-from . import system_config, tools
+from . import system_config, tools, HeadTracker
 from copy import copy 
 import pyfftw
 import numpy as np
 import sound_field_analysis as sfa
+
 from .filter_set import FilterSetMultiChannel, FilterSetShConfig, FilterSetSsr
 
 
@@ -33,9 +34,9 @@ class Convolver(object):
         filter_set, 
         block_length=None, 
         source_positions=None, 
-        ##shared_tracker_data=None
-        azim_deg = 0,
-        elevs_deg = 0
+        shared_tracker_data=None
+        ## azim_deg = 0,
+        ## elevs_deg = 0
     ):
         """
         Static method to instantiate a `Convolver` class or one if its deriving classes,
@@ -65,7 +66,8 @@ class Convolver(object):
             convolver = OverlapSaveConvolver(filter_set, block_length)
         elif type(filter_set) == FilterSetSsr:
             convolver = AdjustableFdConvolver(
-                filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                ##filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                filter_set, block_length, source_positions, shared_tracker_data
             )
         else:
             # isinstance(filter_set, (FilterSetMiro, FilterSetSofa))
@@ -75,7 +77,8 @@ class Convolver(object):
             else:
                 # for HRIR renderer
                 convolver = AdjustableShConvolver(
-                    filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                    ## filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                    filter_set, block_length, source_positions, shared_tracker_data
                 )
 
         # prevent running debugging help function in case of `AdjustableShConvolver` (needs to be
@@ -125,9 +128,9 @@ class Convolver(object):
             f"_irfft=shape{self._irfft.input_shape}--shape{self._irfft.output_shape}]"
         )
 
-    # def _clear_buffers(self):
-    #     """Clear all intermediate signal block buffers, helpful to prevent artifacts when switching
-    #    configurations."""
+    def _clear_buffers(self):
+         """Clear all intermediate signal block buffers, helpful to prevent artifacts when switching
+        configurations."""
 
     def init_fft_optimize(self, logger=None):
         """
@@ -570,9 +573,9 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
         complex one-sided frequency spectra that had the past last processing filters applied to
         the signal contained in a shifting buffer of size like `_blocks_fd`
     """
-    def __init__(self, filter_set, block_length, source_positions, azim_deg = 0 , elevs_deg= 0):
+    ## def __init__(self, filter_set, block_length, source_positions, azim_deg = 0 , elevs_deg= 0):
        
-    ## def __init__(self, filter_set, block_length, source_positions, shared_tracker_data):
+    def __init__(self, filter_set, block_length, source_positions, shared_tracker_data):
         """
         Extends the function of `OverlapSaveConvolver` to initialize a binaural renderer by
         loading the provided positions of virtual sound sources.
@@ -598,9 +601,9 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
             raise ValueError(
                 "no virtual source positions (according to playback file channel count) given."
             )
-        ## self._tracker_deg = shared_tracker_data
-        self.track_azim = azim_deg
-        self.track_elev = elevs_deg
+        self._tracker_deg = shared_tracker_data
+        ## self.track_azim = azim_deg
+        ## self.track_elev = elevs_deg
         self._sources_deg = np.array(source_positions, dtype=np.float16)
 
         # limit to amount of output channels on second dimension to 1
@@ -641,8 +644,8 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
     def __str__(self):
         # noinspection PyTypeChecker
         return (
-            ## f"[{super().__str__()[1:-1]},  _tracker_deg=len({len(self._tracker_deg)}), "
-            f"[{super().__str__()[1:-1]},  azim_deg= {self.track_azim}, elev_deg= {self.track_elev},"
+            f"[{super().__str__()[1:-1]},  _tracker_deg=len({len(self._tracker_deg)}), "
+            ## f"[{super().__str__()[1:-1]},  azim_deg= {self.track_azim}, elev_deg= {self.track_elev},"
             f"_sources_deg=shape{self._sources_deg.shape}, _is_crossfade={self._is_crossfade}, "
             f"_window_td=shape{self._window_out_td.shape}]"
         )
@@ -801,9 +804,9 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
             # )[np.newaxis, :]
             return self._filter.get_dirac_blocks_fd()[np.newaxis, :]
 
-        ## azims_deg, elevs_deg = self._calculate_individual_directions()
-        azims_deg = self.track_azim
-        elevs_deg = self.track_elev
+        azims_deg, elevs_deg = self._calculate_individual_directions()
+        ## azims_deg = [self.track_azim]
+        ## elevs_deg = [self.track_elev]
         # for s in range(azims_deg.shape[0]):
         #     print(
         #         f"source {s} AZIM head {self._tracker_deg[HeadTracker.DataIndex.AZIM]:>+6.1f} "
@@ -822,7 +825,7 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
             ]
         )
     
-    ## def _calculate_individual_directions(self):
+    def _calculate_individual_directions(self):
         """
         Returns
         -------
@@ -833,24 +836,24 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
         """
         # invert tracker direction in case a BRIR (not HRIR) is rendered
         # noinspection PyProtectedMember
-    ##    tracker_dir = 1 if self._filter._is_hrir else -1
+        tracker_dir = 1 if self._filter._is_hrir else -1
 
-    ##    azims_deg = (
-    ##        tracker_dir * self._tracker_deg[HeadTracker.DataIndex.AZIM]
-    ##        + self._sources_deg[:, 0]
-    ##    )
+        azims_deg = (
+            tracker_dir * self._tracker_deg[HeadTracker.DataIndex.AZIM]
+            + self._sources_deg[:, 0]
+        )
         # azimuth between 0 and 359
-    ##    azims_deg = (azims_deg + 360.0) % 360.0
+        azims_deg = (azims_deg + 360.0) % 360.0
 
-    ##    elevs_deg = (
-    ##        tracker_dir * self._tracker_deg[HeadTracker.DataIndex.ELEV]
-    ##        + self._sources_deg[:, 1]
-    ##    )
+        elevs_deg = (
+            tracker_dir * self._tracker_deg[HeadTracker.DataIndex.ELEV]
+            + self._sources_deg[:, 1]
+        )
         # elevation between -180 and 179
-    ##    elevs_deg = ((elevs_deg + 180.0) % 360.0) - 180.0
+        elevs_deg = ((elevs_deg + 180.0) % 360.0) - 180.0
 
         # use floats to calculate above to preserve `_sources_deg` dtype
-    ##    return azims_deg, elevs_deg
+        return azims_deg, elevs_deg
 
 class AdjustableShConvolver(AdjustableFdConvolver):
     """
@@ -884,7 +887,9 @@ class AdjustableShConvolver(AdjustableFdConvolver):
         maximum amplification limit in dB of modal radial filter being applied to the filter
     """
 
-    def __init__(self, filter_set, block_length, source_positions, azim_deg=0, elevs_deg = 0): ##shared_tracker_data):
+    ## def __init__(self, filter_set, block_length, source_positions, azim_deg=0, elevs_deg = 0): ##shared_tracker_data):
+    def __init__(self, filter_set, block_length, source_positions, shared_tracker_data):
+    
         """
         Extends the function of `OverlapSaveConvolver` to initialize a binaural renderer by
         loading the provided positions of virtual sound sources.
@@ -907,9 +912,9 @@ class AdjustableShConvolver(AdjustableFdConvolver):
             filter_set=filter_set,
             block_length=block_length,
             source_positions=source_positions,
-            #shared_tracker_data=shared_tracker_data,
-            azim_deg=azim_deg,
-            elevs_deg=elevs_deg
+            shared_tracker_data=shared_tracker_data,
+            ## azim_deg=azim_deg,
+            ## elevs_deg=elevs_deg
         )
 
         if self._sources_deg.shape[0] > 1:

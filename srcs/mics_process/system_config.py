@@ -46,3 +46,9 @@ LOGGING_PATH = "log/"
 
 CLIENT_MAX_DELAY_SEC = 1
 """Input buffer delay limitation in s for all renderers."""
+
+
+if "TRACKER_TYPE" not in locals():
+    TRACKER_TYPE = None
+if "TRACKER_PORT" not in locals():
+    TRACKER_PORT = None

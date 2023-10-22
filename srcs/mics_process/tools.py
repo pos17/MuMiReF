@@ -620,6 +620,54 @@ def generate_noise(shape, scale=1 / 10, dtype="float64"):
         raise ValueError(f'unknown data type "{dtype}".')
 
 
+def transform_into_wrapped_angles(azim, elev, tilt, is_deg=True, deg_round_precision=0):
+    """
+    Parameters
+    ----------
+    azim : float
+        azimuth angle (will be wrapped to -180..180 degrees)
+    elev : float
+        elevation angle (will be wrapped to -90..90 degrees)
+    tilt : float
+        tilt angle (will be wrapped to -180..180 degrees)
+    is_deg : bool, optional
+        if provided and delivered values are in degrees, radians otherwise
+    deg_round_precision : int, optional
+        number of decimals to round to (only in case of angles in degrees)
+
+    Returns
+    -------
+    list of float
+        azimuth, elevation and tilt angles in degrees or radians being wrapped
+    """
+    if is_deg:
+        _AZIM_WRAP = 360
+        _ELEV_WRAP = 180
+        _TILT_WRAP = 360
+    else:
+        import numpy as np
+
+        _AZIM_WRAP = 2 * np.pi
+        _ELEV_WRAP = np.pi
+        _TILT_WRAP = 2 * np.pi
+
+    azim = azim % _AZIM_WRAP
+    elev = elev % _ELEV_WRAP
+    tilt = tilt % _TILT_WRAP
+
+    if azim > _AZIM_WRAP / 2:
+        azim -= _AZIM_WRAP
+    if elev > _ELEV_WRAP / 2:
+        elev -= _ELEV_WRAP
+    if tilt > _TILT_WRAP / 2:
+        tilt -= _TILT_WRAP
+
+    if is_deg:
+        azim = round(azim, ndigits=deg_round_precision)
+        elev = round(elev, ndigits=deg_round_precision)
+        tilt = round(tilt, ndigits=deg_round_precision)
+
+    return [azim, elev, tilt]
 
 
 
