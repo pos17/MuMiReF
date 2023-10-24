@@ -20,9 +20,11 @@ logging behaviour. """
 
 def main_renderer():
 
-    # simple starting function for jack client implementation 
-
-    def setup_tracker():
+    def setup_tracker(
+        name,
+        TRACKER_TYPE,
+        TRACKER_PORT
+        ):
         """
         Create and start a new `HeadTracker` instance, providing head tracking data to a suitable
         `JackRenderer` process.
@@ -34,8 +36,8 @@ def main_renderer():
         """
         new_tracker = HeadTracker.create_instance_by_type(
             name=f"{name}-Tracker",
-            tracker_type=system_config.TRACKER_TYPE,
-            tracker_port=system_config.TRACKER_PORT,
+            tracker_type=TRACKER_TYPE,
+            tracker_port=TRACKER_PORT,
         )
         new_tracker.start()
         sleep(_INITIALIZE_DELAY)
@@ -80,8 +82,9 @@ def main_renderer():
             # If this line fails with `jack.Status 0x21` then the current JACK environment is
             # problematic. Therefore, try again after restarting your system.
             new_renderer = JackRenderer(
-                name=f"{name}-PreRenderer",
-                block_length=system_config.BLOCK_LENGTH,
+                name=f"{name}-PreRenderer", 
+                OSC_port=OSC_port,
+                block_length=BLOCK_LENGTH,
                 filter_name=arir_file,
                 filter_type=arir_type,
                 sh_max_order=sh_max_order,
@@ -133,69 +136,107 @@ def main_renderer():
         name, 
         OSC_port, 
         BLOCK_LENGTH,
+        starting_input_channel,
+        input_channel_count,
+        starting_output_channel,
+        output_channel_count,
         hrir_type,
         hrir_file,
         hrir_delay,
+        hrir_level,
+        arir_type,
+        arir_file,
+        arir_delay,
+        arir_level,
+        arir_mute,
         sh_max_order,
         ir_truncation_level,
         existing_tracker,
         existing_pre_renderer
         # azim_deg
     ):
-
-        new_renderer = JackRenderer(
-            name,
-            OSC_port=OSC_port,
-            block_length=BLOCK_LENGTH,
-            filter_name=hrir_file,
-            filter_type=hrir_type,
-            input_delay_ms=hrir_delay,
-            source_positions=[(0,0)],
-            shared_tracker_data=existing_tracker.get_shared_position(),
-            sh_max_order= sh_max_order,
-            sh_is_enforce_pinv=False,
-            ir_trunc_db=ir_truncation_level,
-            is_main_client=True,
-            is_measure_levels=True,
-            is_single_precision=system_config.IS_SINGLE_PRECISION,
-            # azim_deg=azim_deg,
-            # elevs_deg=0
-        )
-
-        ## server_input_ports = new_jack_renderer.get_server_ports(is_audio=True,is_input=True)
-        ## server_output_ports = new_jack_renderer.get_server_ports(is_audio=True, is_output=True)
-        ## source_ports = []
-        ## for i in range(input_channel_count):
-        ##     source_ports.append(server_output_ports[starting_input_channel+i])
-        ## 
-        ## output_ports = []
-        ## for i in range(output_channel_count):
-        ##     output_ports.append(server_input_ports[starting_output_channel+i])
-
-        if sh_max_order is not None and existing_pre_renderer:
-                new_renderer.prepare_renderer_sh_processing(
-                    input_sh_config=existing_pre_renderer.get_pre_renderer_sh_config(),
-                    mrf_limit_db=config.ARIR_RADIAL_AMP,
-                    compensation_type=config.SH_COMPENSATION_TYPE,
-                )
-
-        new_renderer.start(client_connect_target_ports=output_ports)
-        ## new_jack_renderer._client_register_and_connect_outputs(target_ports=output_ports)
-        
-        new_jack_renderer.set_output_volume_db(0)
-        new_jack_renderer.set_output_mute(False)
-        new_jack_renderer.client_register_and_connect_inputs(source_ports=source_ports)
-        
-        sleep(_INITIALIZE_DELAY)
+        new_renderer = None
         try:
-            pass
+            new_renderer = JackRenderer(
+                name,
+                OSC_port=OSC_port,
+                block_length=BLOCK_LENGTH,
+                filter_name=hrir_file,
+                filter_type=hrir_type,
+                input_delay_ms=hrir_delay,
+                source_positions=[(0,0)],
+                shared_tracker_data=existing_tracker.get_shared_position(),
+                sh_max_order= sh_max_order,
+                sh_is_enforce_pinv=False,
+                ir_trunc_db=ir_truncation_level,
+                is_main_client=True,
+                is_measure_levels=True,
+                is_single_precision=system_config.IS_SINGLE_PRECISION,
+                # azim_deg=azim_deg,
+                # elevs_deg=0
+            )
+
+            server_input_ports = new_renderer.get_server_ports(is_audio=True,is_input=True)
+            server_output_ports = new_renderer.get_server_ports(is_audio=True, is_output=True)
+            source_ports = []
+            for i in range(input_channel_count):
+                source_ports.append(server_output_ports[starting_input_channel+i])
+            
+            output_ports = []
+            for i in range(output_channel_count):
+                output_ports.append(server_input_ports[starting_output_channel+i])
+        
+
+            if sh_max_order is not None and existing_pre_renderer:
+                    new_renderer.prepare_renderer_sh_processing(
+                        input_sh_config=existing_pre_renderer.get_pre_renderer_sh_config(),
+                        mrf_limit_db=system_config.ARIR_RADIAL_AMP,
+                        compensation_type=system_config.SH_COMPENSATION_TYPE,
+                    )
+
+            new_renderer.start(client_connect_target_ports=output_ports)
+            ## new_jack_renderer._client_register_and_connect_outputs(target_ports=output_ports)
+            
+            new_renderer.set_output_volume_db(hrir_level)
+            new_renderer.set_output_mute(False)
+            #new_renderer.client_register_and_connect_inputs(source_ports=source_ports)
+            
+            sleep(_INITIALIZE_DELAY)
+            if existing_pre_renderer and existing_pre_renderer.is_alive():
+                if (
+                    tools.transform_into_type(arir_type, FilterSet.Type)
+                    is FilterSet.Type.AS_MIRO
+                ):
+                    # connect to system recording ports in case audio stream should be rendered
+                    ## if config.SOURCE_FILE:
+                        # recorded audio stream (generated `JackPlayer` has to connect to input
+                        # ports later)
+                    ##    new_renderer.client_register_and_connect_inputs(
+                    ##        source_ports=False
+                    ##    )
+                    ## else:
+                        # real-time captured audio stream (connect to system recording ports)
+                    new_renderer.client_register_and_connect_inputs(
+                        source_ports= source_ports
+                    )
+                else:
+                    new_renderer.client_register_and_connect_inputs(
+                        existing_pre_renderer.get_client_outputs()
+                    )
+            ## if existing_generator:
+            ##    new_renderer.client_register_and_connect_inputs(
+            ##        existing_generator.get_client_outputs()
+            ##    )
+            else:
+                new_renderer.client_register_and_connect_inputs(source_ports=source_ports)
         except (ValueError, FileNotFoundError, RuntimeError) as e:
             logger.error(e)
-            terminate_all_simple_clients(not_working_client = new_jack_renderer)
+            terminate_all(not_working_client = new_renderer)
             raise InterruptedError
-        return new_jack_renderer
+        return new_renderer
 
     def terminate_all(not_working_renderer=None):
+
             """
             Terminate all (potentially) spawned child processes after muting the last client in the
             rendering chain (headphone compensation or binaural renderer).
@@ -212,13 +253,15 @@ def main_renderer():
                 not_working_renderer.join()
             except (NameError, AttributeError):
                 pass
-            for i in range(len(jack_renderers)):
-                try:
-                    jack_renderers[i].terminate()
-                    jack_renderers[i].join()
-                except (NameError, AttributeError):
-                    pass
-
+            for i in range(len(jack_chains)):
+                for j in range(len(jack_chains[i])):
+                    try:
+                        jack_chains[i][j].terminate()
+                        jack_chains[i][j].join()
+                    except (NameError, AttributeError):
+                        pass
+    
+    # code to be executed inside main
 
     print("starting system")
     if sys.version_info < (3, 0):
@@ -244,16 +287,12 @@ def main_renderer():
     sh_max_order = mics_config["SH_MAX_ORDER"]
     ir_truncation_level = mics_config["IR_TRUNCATION_LEVEL"]
     microphones = mics_config["microphones"]
-    jack_chains = []
+    jack_chains = [] 
 
     system_config.BLOCK_LENGTH = BLOCK_LENGTH
+    
     try:
-        name = "test"
-        tracker = setup_tracker()
         for i in range(renderers_num):
-            
-            jack_chains.append([])
-
             name = microphones[i]["name"]
             OSC_port = microphones[i]["osc_port"]
             starting_input_channel = microphones[i]["starting_input_channel"]
@@ -264,36 +303,77 @@ def main_renderer():
             hrir_type = microphones[i]["hrir_type"]
             hrir_file = microphones[i]["hrir_file"]
             hrir_delay = microphones[i]["hrir_delay"]
+            hrir_level = microphones[i]["hrir_level"]
+            arir_type = microphones[i]["arir_type"]
+            arir_file = microphones[i]["arir_file"]
+            arir_delay = microphones[i]["arir_delay"]
+            arir_level = microphones[i]["arir_level"]
+
+            jack_chains.append([])
+
+            tracker = setup_tracker(name,None,OSC_port)
+            pre_renderer = setup_pre_renderer(
+                name=name,OSC_port=OSC_port+1,
+                BLOCK_LENGTH=BLOCK_LENGTH,
+                starting_input_channel=starting_input_channel,
+                input_channel_count=input_channel_count,
+                starting_output_channel=starting_output_channel,
+                output_channel_count=output_channel_count,
+                hrir_file=hrir_file,
+                hrir_type=hrir_type,
+                arir_file=arir_file,
+                arir_type=arir_type,
+                arir_delay=arir_delay,
+                arir_level=arir_level,
+                arir_mute=False,
+                sh_max_order=sh_max_order,
+                ir_truncation_level=ir_truncation_level,
+                existing_tracker=tracker
+                )
+
+            
+            jack_chains[i].append(tracker)
+            jack_chains[i].append(pre_renderer)
+            
+            renderer = setup_renderer(
+                name=name,
+                OSC_port=OSC_port+2,
+                BLOCK_LENGTH=BLOCK_LENGTH,
+                starting_input_channel=starting_input_channel,
+                input_channel_count=input_channel_count,
+                starting_output_channel=starting_output_channel,
+                output_channel_count=output_channel_count,
+                hrir_file=hrir_file,
+                hrir_type=hrir_type,
+                hrir_delay=hrir_delay,
+                hrir_level=hrir_level,
+                arir_file=arir_file,
+                arir_type=arir_type,
+                arir_delay=arir_delay,
+                arir_level=arir_level,
+                arir_mute=False,
+                sh_max_order=sh_max_order,
+                ir_truncation_level=ir_truncation_level,
+                existing_tracker=tracker,
+                existing_pre_renderer=pre_renderer
+                )
+            jack_chains[i].append(renderer)
 
 
-
-            jack_chains[i].append(
-                setup_pre_renderer(
-                    name,
-                    OSC_port,
-                    BLOCK_LENGTH,
-                    starting_input_channel,
-                    input_channel_count,
-                    starting_output_channel,
-                    output_channel_count,
-                    hrir_type,
-                    hrir_file,
-                    hrir_delay,
-                    sh_max_order,
-                    ir_truncation_level,
-                    existing_tracker=tracker
-                    # azim_deg=angle
-                )                             
-            )
     except InterruptedError:
         logger.error("application interrupted.")
         terminate_all()
         return logger  # terminate application
 
-    # set tracker reference position at application start
-    tracker.set_zero_position()
-    system_config.IS_RUNNING.set()
+    for i in range(renderers_num):
+        # set tracker reference position at application start
+        jack_chains[i][0].set_zero_position()
+        system_config.IS_RUNNING.set()
 
+    # startup completed
+    print(tools.SEPARATOR)
+    logger.info(
+        "use [CTRL]+[C] (once!) to interrupt execution or OSC for remote control ..."
+    )
 
-        
 main_renderer()

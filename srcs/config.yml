@@ -16,7 +16,7 @@ microphones:
       starting_output_channel: 24
       output_channel_count: 4
       angle: 0
-      osc_port: 5006
+      osc_port: 5015
   - 
       name: mic3
       starting_input_channel: 8
@@ -24,7 +24,7 @@ microphones:
       starting_output_channel: 28
       output_channel_count: 4
       angle: 0
-      osc_port: 5007
+      osc_port: 5025
   - 
       name: mic4
       starting_input_channel: 12
@@ -32,7 +32,7 @@ microphones:
       starting_output_channel: 32
       output_channel_count: 4
       angle: 0
-      osc_port: 5008
+      osc_port: 5035
   - 
       name: mic5
       starting_input_channel: 16
@@ -40,4 +40,4 @@ microphones:
       starting_output_channel: 36
       output_channel_count: 4
       angle: 0
-      osc_port: 5009
+      osc_port: 5045

@@ -13,6 +13,7 @@ from ._multiprocessing import mp_context
 from .data_retriever import DataRetriever
 from .filter_set import FilterSet
 from .tracker import HeadTracker
+from .compensation import Compensation
 from .convolver import Convolver
 from .jack_renderer import JackRenderer
 from . import *

@@ -21,7 +21,7 @@ microphones:
       starting_output_channel: 42
       output_channel_count: 2
       angle: 0
-      osc_port: 5006
+      osc_port: 5015
       hrir_type: "HRIR_SOFA"
       hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
       hrir_delay: 0
@@ -32,7 +32,7 @@ microphones:
       starting_output_channel: 44
       output_channel_count: 2
       angle: 0
-      osc_port: 5007
+      osc_port: 5025
       hrir_type: "HRIR_SOFA"
       hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
       hrir_delay: 0
@@ -43,7 +43,7 @@ microphones:
       starting_output_channel: 46
       output_channel_count: 2
       angle: 0
-      osc_port: 5008
+      osc_port: 5035
       hrir_type: "HRIR_SOFA"
       hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
       hrir_delay: 0
@@ -54,7 +54,7 @@ microphones:
       starting_output_channel: 48
       output_channel_count: 2
       angle: 0
-      osc_port: 5009
+      osc_port: 5045
       hrir_type: "HRIR_SOFA"
       hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
       hrir_delay: 0

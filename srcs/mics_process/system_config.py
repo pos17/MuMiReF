@@ -47,8 +47,16 @@ LOGGING_PATH = "log/"
 CLIENT_MAX_DELAY_SEC = 1
 """Input buffer delay limitation in s for all renderers."""
 
+ARIR_RADIAL_AMP = 18
+"""Maximum amplification limit in dB when generating modal radial filters, see `FilterSet`."""
+
 
 if "TRACKER_TYPE" not in locals():
     TRACKER_TYPE = None
 if "TRACKER_PORT" not in locals():
     TRACKER_PORT = None
+if "ARIR_RADIAL_AMP" not in locals():
+    ARIR_RADIAL_AMP = 0
+if "SH_COMPENSATION_TYPE" not in locals():
+    SH_COMPENSATION_TYPE = None
+

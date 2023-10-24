@@ -1,5 +1,5 @@
 
-from . import system_config, tools, HeadTracker
+from . import Compensation, system_config, tools, HeadTracker
 from copy import copy 
 import pyfftw
 import numpy as np
@@ -636,7 +636,8 @@ class AdjustableFdConvolver(OverlapSaveConvolver):
             is_single_precision=self._filter.get_dirac_td().dtype == np.float32,
         )
         new = type(self)(
-            _filter, self._block_length, tuple(self._sources_deg), self.track_azim, self.track_elev ## self._tracker_deg
+            ## _filter, self._block_length, tuple(self._sources_deg), self.track_azim, self.track_elev ## self._tracker_deg
+            _filter, self._block_length, tuple(self._sources_deg), self._tracker_deg
         )
         new.__dict__.update(self.__dict__)
         return new
@@ -985,12 +986,12 @@ class AdjustableShConvolver(AdjustableFdConvolver):
         )
 
         # store SH compensation configurations, in case it should be re-applied
-        ## self._comp = [compensation_type, Compensation.Type.MRF]
-        ## self._comp_arir_config = input_sh_config.arir_config
-        ## self._comp_mrf_limit = mrf_limit_db
+        self._comp = [compensation_type, Compensation.Type.MRF]
+        self._comp_arir_config = input_sh_config.arir_config
+        self._comp_mrf_limit = mrf_limit_db
 
         # apply SH compensation
-        ## self._apply_sh_compensation(is_plot=True, logger=logger)
+        self._apply_sh_compensation(is_plot=True, logger=logger)
 
         # adjust buffer block sizes according to array configuration
         arir_channel_count = input_sh_config.sh_bases_weighted.shape[-1]
@@ -1055,7 +1056,7 @@ class AdjustableShConvolver(AdjustableFdConvolver):
     # TODO: Restore use of compensation as preimplemented
     
     # noinspection PyProtectedMember
-    ## def _apply_sh_compensation(self, is_plot=True, logger=None):
+    def _apply_sh_compensation(self, is_plot=True, logger=None):
         """
         Calculate and apply modal radial filter as well as further compensation filters. This
         function can be re-used during runtime, in case aspects of the rendering configuration
@@ -1070,41 +1071,41 @@ class AdjustableShConvolver(AdjustableFdConvolver):
         """
         # reset compensation specific parameters to initial values (relevant when re-applying the
         # compensations)
-    ##    Compensation.reset_config(is_plot=is_plot)
+        Compensation.reset_config(is_plot=is_plot)
 
         # (re)calculate block buffers
-    ##    self._filter.calculate_filter_blocks_nm()
+        self._filter.calculate_filter_blocks_nm()
 
         # backup raw block buffers
-    ##    irs_blocks_nm_before = self._filter._irs_blocks_nm.copy()
+        irs_blocks_nm_before = self._filter._irs_blocks_nm.copy()
 
         # generate specified compensations based on one block length
-    ##    comp_nm = Compensation.generate_by_type(
-    ##        compensation_types=self._comp,
-    ##        filter_set=self._filter,
-    ##        arir_config=self._comp_arir_config,
-    ##        amp_limit_db=self._comp_mrf_limit,
-    ##        nfft=None,
-    ##        nfft_padded=self._input_block_td.shape[-1],
-    ##        logger=logger,
-    ##    )
+        comp_nm = Compensation.generate_by_type(
+            compensation_types=self._comp,
+            filter_set=self._filter,
+            arir_config=self._comp_arir_config,
+            amp_limit_db=self._comp_mrf_limit,
+            nfft=None,
+            nfft_padded=self._input_block_td.shape[-1],
+            logger=logger,
+        )
 
         # apply compensations
-    ##    self._filter._irs_blocks_nm *= comp_nm
+        self._filter._irs_blocks_nm *= comp_nm
 
         # plot comparison of raw and compensated block buffers
-    ##    name = self._filter._generate_plot_name(
-    ##        block_length=self._block_length, logger=logger
-    ##    )
-    ##    tools.export_plot(
-    ##        figure=tools.plot_nm_rms(
-    ##            data_nm_fd=np.concatenate(
-    ##                (irs_blocks_nm_before, self._filter._irs_blocks_nm), axis=0
-    ##            )
-    ##        ),
-    ##        name=f"{name}_COMP",
-    ##        logger=logger,
-    ##    )
+        name = self._filter._generate_plot_name(
+            block_length=self._block_length, logger=logger
+        )
+        tools.export_plot(
+            figure=tools.plot_nm_rms(
+                data_nm_fd=np.concatenate(
+                    (irs_blocks_nm_before, self._filter._irs_blocks_nm), axis=0
+                )
+            ),
+            name=f"{name}_COMP",
+            logger=logger,
+        )
 
     def get_input_channel_count(self):
         """
@@ -1162,9 +1163,9 @@ class AdjustableShConvolver(AdjustableFdConvolver):
         input_block_nm *= self._filter.get_filter_blocks_nm()[0]
 
         # get head-tracker position (neglect elevation)
-        ## azim_deg, _ = self._calculate_individual_directions()
-        azim_deg = self.track_azim
-        _ = self.track_elev
+        azim_deg, _ = self._calculate_individual_directions()
+        ## azim_deg = self.track_azim
+        ## _ = self.track_elev
         sh_azim_nm = np.exp(
             self._blocks_fd.dtype.type(-1j) * self._sh_m * np.deg2rad(azim_deg)
         )
