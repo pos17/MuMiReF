@@ -16,7 +16,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_EM32ch_struct.mat"
+        arir_file: "res/ARIR/RT_calib_EM32ch_struct_no_quad_1.mat"
         arir_delay: 0
         arir_level: 0
         compensation: None
@@ -33,7 +33,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_EM32ch_struct.mat"
+        arir_file: "res/ARIR/RT_calib_EM32ch_struct_no_quad_1.mat"
         arir_delay: 0
         arir_level: 0
         compensation: None
@@ -50,7 +50,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_EM32ch_struct.mat"
+        arir_file: "res/ARIR/RT_calib_EM32ch_struct_no_quad_1.mat"
         arir_delay: 0
         arir_level: 0
         compensation: None
