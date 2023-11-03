@@ -195,6 +195,8 @@ def main_renderer():
                     )
 
             new_renderer.start(client_connect_target_ports=output_ports)
+            print("output ports:")
+            print(output_ports)
             ## new_jack_renderer._client_register_and_connect_outputs(target_ports=output_ports)
             
             new_renderer.set_output_volume_db(hrir_level)
@@ -218,7 +220,10 @@ def main_renderer():
                         # real-time captured audio stream (connect to system recording ports)
                     new_renderer.client_register_and_connect_inputs(
                         source_ports= source_ports
+                       
                     )
+                    print("Source ports:")
+                    print(source_ports)
                 else:
                     new_renderer.client_register_and_connect_inputs(
                         existing_pre_renderer.get_client_outputs()
@@ -229,6 +234,8 @@ def main_renderer():
             ##    )
             else:
                 new_renderer.client_register_and_connect_inputs(source_ports=source_ports)
+                print("Source ports no prerenderer:")
+                print(source_ports)
         except (ValueError, FileNotFoundError, RuntimeError) as e:
             logger.error(e)
             terminate_all(not_working_client = new_renderer)
@@ -277,7 +284,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_renderer_3.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_renderer_1.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])
