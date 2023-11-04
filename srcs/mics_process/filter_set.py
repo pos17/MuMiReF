@@ -975,7 +975,8 @@ class FilterSetMiro(FilterSet):
 
         # generate file info
         try:
-            array_signal = sfa.io.read_miro_struct(self._file_name)
+            # array_signal = sfa.io.read_miro_struct(self._file_name)
+            array_signal = sfa.io.read_miro_struct(self._file_name,transducer_type = "cardioid")
             log_str = (
                 f"{log_str}\n --> samplerate: {array_signal.signal.fs:.0f} Hz, "
                 f"channels: {array_signal.signal.signal.shape[0]}, "
@@ -1048,7 +1049,7 @@ class FilterSetMiro(FilterSet):
             )
 
         else:
-            array_signal = sfa.io.read_miro_struct(self._file_name)
+            array_signal = sfa.io.read_miro_struct(self._file_name,transducer_type = "cardioid")
 
             # save needed attributes and adjust dtype
             self._irs_td = array_signal.signal.signal[np.newaxis, :]
