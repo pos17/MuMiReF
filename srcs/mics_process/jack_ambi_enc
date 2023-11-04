@@ -1,0 +1,41 @@
+from srcs.mics_process.jack_client import JackClient
+
+
+class JackAmbiEnc(JackClient):
+    """
+    Extension of `JackRenderer` to provide functionality of processing multiple convolvers at the
+    same time. This is meant to be used only for benchmarking purposes.
+
+    Attributes
+    ----------
+    _convolvers : list of Convolver
+        each instance providing block-wise processing of FIR filtering in the frequency domain
+    """
+    def __init__(
+        self,
+        name,
+        OSC_port,
+        block_length,
+        sh_max_order=None,
+        *args,
+        **kwargs,
+    ):
+        """
+        Extends the `JackClient` function to initialize a new JACK client and process. According
+        to the documentation all attributes must be initialized in this function, to be available
+        to the spawned process.
+
+        Parameters
+        ----------
+        name : str
+            name of the JACK client and spawned process
+        block_length : int
+            block length in samples of the JACK client (global setting for JACK server and all
+            clients)
+        sh_max_order : int, optional
+            maximum spherical harmonics order used for the spatial Fourier transform
+        """
+        super().__init__(name=name,OSC_port=OSC_port, block_length=block_length, *args, **kwargs)
+
+
+        

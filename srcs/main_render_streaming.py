@@ -11,6 +11,7 @@ from mics_process import process_logger
 from mics_process import system_config
 from time import sleep
 from mics_process.tracker import HeadTracker
+import numpy as np
 
 # TODO: HANDLING LOGGING CORRECTLY
 
@@ -164,7 +165,9 @@ def main_renderer():
                 filter_name=hrir_file,
                 filter_type=hrir_type,
                 input_delay_ms=hrir_delay,
-                source_positions=[(0,0)],
+                ## source_positions=[(0,0)],
+                ##source_positions=None,
+                source_positions=[(np.pi,3/2*np.pi)],
                 shared_tracker_data=existing_tracker.get_shared_position(),
                 sh_max_order= sh_max_order,
                 sh_is_enforce_pinv=False,

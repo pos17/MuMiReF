@@ -536,3 +536,5 @@ class JackRendererBenchmark(JackRenderer):
                 _ = c.filter_block(input_td)  # discard results
 
         return output_td
+
+

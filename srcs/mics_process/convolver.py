@@ -1229,3 +1229,5 @@ class AdjustableShConvolver(AdjustableFdConvolver):
             self._last_sh_azim_nm.fill(0)
 
         return self._is_crossfade
+
+
