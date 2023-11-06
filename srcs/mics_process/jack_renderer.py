@@ -275,7 +275,8 @@ class JackRenderer(JackClient):
         if self.is_alive():
             return super().get_client_outputs()
 
-        # in case client was not started yet, a list of output channels of the contained
+        # in case client was not 
+        # ed yet, a list of output channels of the contained
         # `Convolver` is returned
         self._logger.debug(
             "output count determined from `Convolver`, since client was not started yet."

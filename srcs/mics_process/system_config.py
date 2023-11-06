@@ -12,7 +12,7 @@ IS_SINGLE_PRECISION = True
 `complex64`) instead of double precision (`float64` and `complex128`). """
 
 
-IS_PYFFTW_MODE = True  # True leads to the best performance so far
+IS_PYFFTW_MODE = False  # True leads to the best performance so far
 """If `pyfftw` package (wrapper for FFTW library) should be used instead of `numpy` for all
 real-time DFT operations. In case `pyfftw` is not used, all related tasks like loading/saving and
 pre-calculating FFTW wisdom will be skipped. """

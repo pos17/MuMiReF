@@ -11,7 +11,7 @@ from mics_process import process_logger
 from mics_process import system_config
 from time import sleep
 from mics_process.tracker import HeadTracker
-from mics_process.jack_ambi_enc import JackAmbiEnc
+from mics_process.jack_ambi_enc import JackAmbisonicEncoder
 import numpy as np
 
 
@@ -21,7 +21,7 @@ _INITIALIZE_DELAY = 0.5
 """Delay in seconds waited after certain points of the initialization progress to get a clear
 logging behaviour. """
 
-def main_renderer():
+def main_ambisonic_encoder():
 
     def setup_ambisonic_encoder(
         name, 
@@ -34,16 +34,17 @@ def main_renderer():
         config_type,
         config_file,
         sh_max_order,
+        sh_is_enforce_pinv
     ):
         new_ambi_enc = None
         try:
-            new_ambi_enc = JackAmbiEnc(
+            new_ambi_enc = JackAmbisonicEncoder(
                 name=name,
                 OSC_port=OSC_port,
                 block_length=BLOCK_LENGTH,
-                config_file = config_file,
-                config_type = config_type,
+                file_name = config_file,
                 sh_max_order=sh_max_order,
+                sh_is_enforce_pinv = sh_is_enforce_pinv,
             )
 
            
@@ -61,60 +62,27 @@ def main_renderer():
             
         
 
-            if sh_max_order is not None and existing_pre_renderer:
-                    new_renderer.prepare_renderer_sh_processing(
-                        input_sh_config=existing_pre_renderer.get_pre_renderer_sh_config(),
-                        mrf_limit_db=system_config.ARIR_RADIAL_AMP,
-                        compensation_type=system_config.SH_COMPENSATION_TYPE,
-                    )
+            if sh_max_order is not None:
+                    new_ambi_enc.load_config_file(is_single_precision=system_config.IS_SINGLE_PRECISION)
 
-            new_renderer.start(client_connect_target_ports=output_ports)
+            new_ambi_enc.start(client_connect_target_ports=output_ports)
             print("output ports:")
             print(output_ports)
             ## new_jack_renderer._client_register_and_connect_outputs(target_ports=output_ports)
             
-            new_renderer.set_output_volume_db(hrir_level)
-            new_renderer.set_output_mute(False)
+            new_ambi_enc.set_output_volume_db(0)
+            new_ambi_enc.set_output_mute(False)
             #new_renderer.client_register_and_connect_inputs(source_ports=source_ports)
             
             sleep(_INITIALIZE_DELAY)
-            if existing_pre_renderer and existing_pre_renderer.is_alive():
-                if (
-                    tools.transform_into_type(arir_type, FilterSet.Type)
-                    is FilterSet.Type.AS_MIRO
-                ):
-                    # connect to system recording ports in case audio stream should be rendered
-                    ## if config.SOURCE_FILE:
-                        # recorded audio stream (generated `JackPlayer` has to connect to input
-                        # ports later)
-                    ##    new_renderer.client_register_and_connect_inputs(
-                    ##        source_ports=False
-                    ##    )
-                    ## else:
-                        # real-time captured audio stream (connect to system recording ports)
-                    new_renderer.client_register_and_connect_inputs(
-                        source_ports= source_ports
-                       
-                    )
-                    print("Source ports:")
-                    print(source_ports)
-                else:
-                    new_renderer.client_register_and_connect_inputs(
-                        existing_pre_renderer.get_client_outputs()
-                    )
-            ## if existing_generator:
-            ##    new_renderer.client_register_and_connect_inputs(
-            ##        existing_generator.get_client_outputs()
-            ##    )
-            else:
-                new_renderer.client_register_and_connect_inputs(source_ports=source_ports)
-                print("Source ports no prerenderer:")
-                print(source_ports)
+            new_ambi_enc.client_register_and_connect_inputs(source_ports=source_ports)
+            print("Source ports no prerenderer:")
+            print(source_ports)
         except (ValueError, FileNotFoundError, RuntimeError) as e:
             logger.error(e)
-            terminate_all(not_working_client = new_renderer)
+            terminate_all(not_working_client = new_ambi_enc)
             raise InterruptedError
-        return new_renderer
+        return new_ambi_enc
 
     def terminate_all(not_working_renderer=None):
 
@@ -158,7 +126,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_spatial_mic_renderer_1.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_ambisonic_encoder_1.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])
@@ -166,7 +134,6 @@ def main_renderer():
     renderers_num = mics_config["clients_num"]
     BLOCK_LENGTH = mics_config["BLOCK_LENGTH"]
     sh_max_order = mics_config["SH_MAX_ORDER"]
-    ir_truncation_level = mics_config["IR_TRUNCATION_LEVEL"]
     microphones = mics_config["microphones"]
     jack_chains = [] 
 
@@ -180,65 +147,28 @@ def main_renderer():
             input_channel_count = microphones[i]["input_channel_count"]
             starting_output_channel = microphones[i]["starting_output_channel"]
             output_channel_count = microphones[i]["output_channel_count"]
-            angle= microphones[i]["angle"]
-            hrir_type = microphones[i]["hrir_type"]
-            hrir_file = microphones[i]["hrir_file"]
-            hrir_delay = microphones[i]["hrir_delay"]
-            hrir_level = microphones[i]["hrir_level"]
-            arir_type = microphones[i]["arir_type"]
-            arir_file = microphones[i]["arir_file"]
-            arir_delay = microphones[i]["arir_delay"]
-            arir_level = microphones[i]["arir_level"]
+            config_type = microphones[i]["arir_type"]
+            config_file = microphones[i]["arir_file"]
+            
 
             jack_chains.append([])
 
-            tracker = setup_tracker(name,None,OSC_port)
-            pre_renderer = setup_pre_renderer(
-                name=name,OSC_port=OSC_port+1,
-                BLOCK_LENGTH=BLOCK_LENGTH,
-                starting_input_channel=starting_input_channel,
-                input_channel_count=input_channel_count,
-                starting_output_channel=starting_output_channel,
-                output_channel_count=output_channel_count,
-                hrir_file=hrir_file,
-                hrir_type=hrir_type,
-                arir_file=arir_file,
-                arir_type=arir_type,
-                arir_delay=arir_delay,
-                arir_level=arir_level,
-                arir_mute=False,
-                sh_max_order=sh_max_order,
-                ir_truncation_level=ir_truncation_level,
-                existing_tracker=tracker
-                )
-
+    
             
-            jack_chains[i].append(tracker)
-            jack_chains[i].append(pre_renderer)
-            
-            renderer = setup_renderer(
+            ambi_enc = setup_ambisonic_encoder(
                 name=name,
-                OSC_port=OSC_port+2,
+                OSC_port=OSC_port,
                 BLOCK_LENGTH=BLOCK_LENGTH,
                 starting_input_channel=starting_input_channel,
                 input_channel_count=input_channel_count,
                 starting_output_channel=starting_output_channel,
                 output_channel_count=output_channel_count,
-                hrir_file=hrir_file,
-                hrir_type=hrir_type,
-                hrir_delay=hrir_delay,
-                hrir_level=hrir_level,
-                arir_file=arir_file,
-                arir_type=arir_type,
-                arir_delay=arir_delay,
-                arir_level=arir_level,
-                arir_mute=False,
+                config_type=config_type,
+                config_file=config_file,
                 sh_max_order=sh_max_order,
-                ir_truncation_level=ir_truncation_level,
-                existing_tracker=tracker,
-                existing_pre_renderer=pre_renderer
-                )
-            jack_chains[i].append(renderer)
+                sh_is_enforce_pinv=False
+                          )
+            jack_chains[i].append(ambi_enc)
 
 
     except InterruptedError:
@@ -248,7 +178,7 @@ def main_renderer():
 
     for i in range(renderers_num):
         # set tracker reference position at application start
-        jack_chains[i][0].set_zero_position()
+        ##jack_chains[i][0].set_zero_position()
         system_config.IS_RUNNING.set()
 
     # startup completed
@@ -257,4 +187,4 @@ def main_renderer():
         "use [CTRL]+[C] (once!) to interrupt execution or OSC for remote control ..."
     )
 
-main_renderer()
+main_ambisonic_encoder()
