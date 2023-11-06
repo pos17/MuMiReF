@@ -3,9 +3,10 @@ import os
 import sound_field_analysis as sfa
 import numpy as np
 import pyfftw
-from . import system_config
+from . import system_config, tools
 from .jack_client import JackClient
 from mics_process.system_config import IS_SINGLE_PRECISION
+
 
 
 
@@ -62,6 +63,14 @@ class JackAmbisonicEncoder(JackClient):
         ## self._dirac_td = np.zeros(self._block_length.shape[-2:], dtype=self._irs_td.dtype)
         ## self._dirac_td[:, 0] = 1.0
         ## self._dirac_blocks_fd = np.zeros()
+
+        # prevent running debugging help function in case of `AdjustableShConvolver` (needs to be
+        # invoked after `AdjustableShConvolver.prepare_renderer_sh_processing()` instead!)
+        if system_config.IS_DEBUG_MODE:
+            # noinspection PyTypeChecker
+            self._debug_filter_block(
+                len(source_positions) if source_positions else 0
+            )
 
     def start(self, client_connect_target_ports=True):
         """
@@ -292,3 +301,61 @@ class JackAmbisonicEncoder(JackClient):
         # remove 1st singular dimension and return relevant second half of the time domain data
         return output_block_td[0, :, int(output_block_td.shape[-1] / 2) :]
         # half of 1st block is not in C-order, but copy() did not have a performance impact
+
+
+
+    def _debug_filter_block(self, input_count, is_generate_noise=False):
+        """
+        Provides debugging possibilities the `filter_block()` function before running the
+        `Convolver` as a separate process, where breakpoints do not work anymore. Arbitrary audio
+        blocks can be send into the array, here some white noise in the shape to be expected from
+        a `JackRenderer` input is generated.
+
+        Parameters
+        ----------
+        input_count : int or None
+            number of input channels expected
+        is_generate_noise : bool, optional
+            if white noise should be generated to test convolution, otherwise a dirac impulse will
+            be used
+
+        Returns
+        -------
+        numpy.ndarray
+            filtered output blocks in time domain of size [number of output channels;
+            `_block_length`]
+        """
+        # catch up with optimizing DFT, if had not been done yet
+        if not self._rfft or not self._irfft:
+            self.init_fft_optimize()
+
+        # generate input blocks
+        if not input_count:  # 0 or None
+            input_count = (
+                self._rfft.input_shape[-2]
+                if system_config.IS_PYFFTW_MODE
+                else self.get_dirac_td().shape[-2]
+            )
+
+        # noinspection PyUnresolvedReferences
+        # do not replace with `isinstance()` because of inheritance!
+        block_length = (
+            self._rfft.input_shape[-1]
+            if (system_config.IS_PYFFTW_MODE)
+            else self._block_length
+        )
+        if is_generate_noise:
+            ip = tools.generate_noise(
+                (input_count, block_length), dtype=self._filter.get_dirac_td().dtype
+            )  # white
+        else:
+            ip = np.zeros(
+                (input_count, block_length), dtype=self._filter.get_dirac_td().dtype
+            )
+            ip[:, 0] = 1  # dirac impulse
+
+        # calculate filtered blocks
+        op = self.filter_block(ip)
+
+        # potentially check output blocks
+        return op
