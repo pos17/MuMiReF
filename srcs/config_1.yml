@@ -1,0 +1,12 @@
+clients_num: 1
+BLOCK_LENGTH: 4096
+microphones: 
+  - 
+      name: mic1
+      starting_input_channel: 2
+      input_channel_count: 8
+      starting_output_channel: 20
+      output_channel_count: 8
+      angle: 0
+      osc_port: 5005
+  
