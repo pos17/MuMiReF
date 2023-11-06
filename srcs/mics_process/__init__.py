@@ -16,5 +16,6 @@ from .tracker import HeadTracker
 from .compensation import Compensation
 from .convolver import Convolver
 from .jack_renderer import JackRenderer
+from .jack_ambi_enc import JackAmbiEnc
 from . import *
 # IMPORTANT: BE VERY CAUTIOUS IN CHANGING THE ORDER OF IMPORTS HERE !!!
