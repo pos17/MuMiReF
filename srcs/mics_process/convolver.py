@@ -1002,7 +1002,7 @@ class AdjustableShConvolver(AdjustableFdConvolver):
 
         # catch up on running debugging help function in case of `AdjustableShConvolver`
         if system_config.IS_DEBUG_MODE:
-            self._debug_filter_block(input_count=arir_channel_count)
+            self._debug_filter_block(input_count=arir_channel_count,is_generate_noise=True)
 
     # noinspection PyProtectedMember
     def update_sh_processing(self, sh_new_order, logger=None):
