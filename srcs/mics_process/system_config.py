@@ -30,6 +30,7 @@ IS_DEBUG_MODE = tools.get_is_debug()
 """If the application is run in a debugging mode. When execution is paused this is used so
 certain processes relying on real time execution do not raise errors. Also this is used to make
 use of breakpoints in certain functions before they get released in a separate process. """
+IS_TEST_AMBISONIC = True
 
 IS_RUNNING = mp_context.Event()
 """If the application is running and rendering audio at the moment. This needs to be set after

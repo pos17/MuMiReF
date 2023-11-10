@@ -1,7 +1,7 @@
 from copy import copy
 from time import altzone
 from . import Convolver, FilterSet, tools
-from .convolver import AdjustableFdConvolver, AdjustableShConvolver
+from .convolver import AdjustableFdConvolver, AdjustableShConvolver, AdjustableShConvolverAmbiRaw
 from .filter_set import FilterSetMiro, FilterSetShConfig, FilterSetSofa
 from .jack_client import JackClient
 
@@ -447,7 +447,8 @@ class JackRenderer(JackClient):
             "applying spherical harmonics configuration and pre-calculating components ..."
         )
 
-        if type(self._convolver) is not AdjustableShConvolver:
+        if (type(self._convolver) is not AdjustableShConvolver) and (type(self._convolver) is not AdjustableShConvolverAmbiRaw):
+        ## if type(self._convolver) is not AdjustableShConvolverAmbiRaw:
             # noinspection PyProtectedMember
             raise ValueError(
                 f"convolver type {type(self._convolver)} of filter {type(self._convolver._filter)} "
