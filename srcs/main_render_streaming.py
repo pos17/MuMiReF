@@ -153,8 +153,8 @@ def main_renderer():
         sh_max_order,
         ir_truncation_level,
         existing_tracker,
-        existing_pre_renderer
-        # azim_deg
+        existing_pre_renderer,
+        azim_deg
     ):
         new_renderer = None
         try:
@@ -165,9 +165,9 @@ def main_renderer():
                 filter_name=hrir_file,
                 filter_type=hrir_type,
                 input_delay_ms=hrir_delay,
-                ## source_positions=[(0,0)],
+                source_positions=[(azim_deg,0)],
                 ##source_positions=None,
-                source_positions=[(np.pi,3/2*np.pi)],
+                ##source_positions=[(np.pi,3/2*np.pi)],
                 shared_tracker_data=existing_tracker.get_shared_position(),
                 sh_max_order= sh_max_order,
                 sh_is_enforce_pinv=False,
@@ -191,8 +191,11 @@ def main_renderer():
         
 
             if sh_max_order is not None and existing_pre_renderer:
+                    prerenderer_sh_config = existing_pre_renderer.get_pre_renderer_sh_config()
+                    if(sh_max_order == 2):
+                        prerenderer_sh_config.sh_bases_weighted[-3,:] = 0
                     new_renderer.prepare_renderer_sh_processing(
-                        input_sh_config=existing_pre_renderer.get_pre_renderer_sh_config(),
+                        input_sh_config= prerenderer_sh_config, ## existing_pre_renderer.get_pre_renderer_sh_config(),
                         mrf_limit_db=system_config.ARIR_RADIAL_AMP,
                         compensation_type=system_config.SH_COMPENSATION_TYPE,
                     )
@@ -309,7 +312,7 @@ def main_renderer():
             input_channel_count = microphones[i]["input_channel_count"]
             starting_output_channel = microphones[i]["starting_output_channel"]
             output_channel_count = microphones[i]["output_channel_count"]
-            angle= microphones[i]["angle"]
+            azim_deg= microphones[i]["azim_deg"]
             hrir_type = microphones[i]["hrir_type"]
             hrir_file = microphones[i]["hrir_file"]
             hrir_delay = microphones[i]["hrir_delay"]
@@ -365,7 +368,8 @@ def main_renderer():
                 sh_max_order=sh_max_order,
                 ir_truncation_level=ir_truncation_level,
                 existing_tracker=tracker,
-                existing_pre_renderer=pre_renderer
+                existing_pre_renderer=pre_renderer,
+                azim_deg = azim_deg
                 )
             jack_chains[i].append(renderer)
 
