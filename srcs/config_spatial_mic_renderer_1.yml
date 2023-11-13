@@ -19,5 +19,5 @@ microphones:
         arir_file: "res/ARIR/RT_calib_SM8polimi_struct_1.mat"
         arir_delay: 0
         arir_level: 0
-        compensation: None
+        compensation: "MODAL_RADIAL_FILTER"
     

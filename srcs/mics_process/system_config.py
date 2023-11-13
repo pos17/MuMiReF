@@ -17,6 +17,8 @@ IS_PYFFTW_MODE = True  # True leads to the best performance so far
 real-time DFT operations. In case `pyfftw` is not used, all related tasks like loading/saving and
 pre-calculating FFTW wisdom will be skipped. """
 
+SH_COMPENSATION_TYPE = "MODAL_RADIAL_FILTER"
+
 ## SH_COMPENSATION_TYPE = "SPHERICAL_HARMONICS_TAPERING+SPHERICAL_HEAD_FILTER"
 ## SH_COMPENSATION_TYPE = "SPHERICAL_HARMONICS_TAPERING+SPHERICAL_HEAD_FILTER+SECTORIAL_DEGREE_SELECTION"
 

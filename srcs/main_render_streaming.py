@@ -154,7 +154,8 @@ def main_renderer():
         ir_truncation_level,
         existing_tracker,
         existing_pre_renderer,
-        azim_deg
+        azim_deg,
+        compensation_setting
     ):
         new_renderer = None
         try:
@@ -197,7 +198,7 @@ def main_renderer():
                     new_renderer.prepare_renderer_sh_processing(
                         input_sh_config= prerenderer_sh_config, ## existing_pre_renderer.get_pre_renderer_sh_config(),
                         mrf_limit_db=system_config.ARIR_RADIAL_AMP,
-                        compensation_type=system_config.SH_COMPENSATION_TYPE,
+                        compensation_type= compensation_setting ##system_config.SH_COMPENSATION_TYPE,
                     )
 
             new_renderer.start(client_connect_target_ports=output_ports)
@@ -290,7 +291,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_spatial_mic_renderer_1.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_renderer_1_5.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])
@@ -321,6 +322,7 @@ def main_renderer():
             arir_file = microphones[i]["arir_file"]
             arir_delay = microphones[i]["arir_delay"]
             arir_level = microphones[i]["arir_level"]
+            compensation_setting = microphones[i]["compensation"]
 
             jack_chains.append([])
 
@@ -369,7 +371,8 @@ def main_renderer():
                 ir_truncation_level=ir_truncation_level,
                 existing_tracker=tracker,
                 existing_pre_renderer=pre_renderer,
-                azim_deg = azim_deg
+                azim_deg = azim_deg,
+                compensation_setting = compensation_setting
                 )
             jack_chains[i].append(renderer)
 
