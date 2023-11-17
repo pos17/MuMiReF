@@ -1,4 +1,4 @@
-clients_num: 5
+clients_num: 6
 BLOCK_LENGTH: 2048
 SH_MAX_ORDER: 2
 IR_TRUNCATION_LEVEL: -60
@@ -21,7 +21,7 @@ microphones:
         arir_level: 0
         compensation: None
     - 
-        name: mic1_MRF_0
+        name: mic1_MRF_0_SCATTER
         starting_input_channel: 2
         input_channel_count: 8
         starting_output_channel: 22
@@ -50,7 +50,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated.mat"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
         arir_delay: 0
         arir_level: 0
         compensation: "MODAL_RADIAL_FILTER"
@@ -67,7 +67,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated.mat"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
         arir_delay: 0
         arir_level: 0
         compensation: "MODAL_RADIAL_FILTER"
@@ -84,7 +84,7 @@ microphones:
         hrir_delay: 0
         hrir_level: 0
         arir_type: "AS_MIRO"
-        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated.mat"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
         arir_delay: 0
         arir_level: 0
         compensation: "MODAL_RADIAL_FILTER"
@@ -94,7 +94,7 @@ microphones:
         input_channel_count: 8
         starting_output_channel: 30
         output_channel_count: 2
-        azim_deg: 90
+        azim_deg: 0
         osc_port: 5035
         hrir_type: "HRIR_SOFA"
         hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
