@@ -19,11 +19,7 @@ def main():
 
     # simple starting function for jack client implementation 
     def setup_jack_client(name, OSC_port, BLOCK_LENGTH,starting_input_channel,input_channel_count,starting_output_port,output_channel_count):
-
        
-
-
-
         new_jack_client = JackClient(name,OSC_port=OSC_port,block_length=BLOCK_LENGTH)
 
         server_input_ports = new_jack_client.get_server_ports(is_audio=True,is_input=True)

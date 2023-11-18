@@ -13,6 +13,7 @@ dependencies:
   - scipy >=0.16
   - pyyaml
   - pip:
+    - jack-server == 0.1.4
     - jack-client >=0.4.4
     - python-osc
     - pysofaconventions >=0.1.5

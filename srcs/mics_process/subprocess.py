@@ -23,7 +23,7 @@ class SubProcess(mp_context.Process):
     def __init__(
         self,
         name,
-        OSC_port,
+        OSC_port= None,
         is_daemon_process=False,
         is_disable_file_logger=False,
         is_disable_logger=False,

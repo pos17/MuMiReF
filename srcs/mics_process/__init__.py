@@ -10,5 +10,11 @@ __all__ = [
 
 # IMPORTANT: BE VERY CAUTIOUS IN CHANGING THE ORDER OF IMPORTS HERE !!!
 from ._multiprocessing import mp_context
+from .data_retriever import DataRetriever
+from .filter_set import FilterSet
+from .tracker import HeadTracker
+from .compensation import Compensation
+from .convolver import Convolver
+from .jack_renderer import JackRenderer
 from . import *
 # IMPORTANT: BE VERY CAUTIOUS IN CHANGING THE ORDER OF IMPORTS HERE !!!

@@ -1,0 +1,108 @@
+clients_num: 6
+BLOCK_LENGTH: 2048
+SH_MAX_ORDER: 2
+IR_TRUNCATION_LEVEL: -60
+microphones: 
+    - 
+        name: mic1_RAW
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 20
+        output_channel_count: 2
+        azim_deg: 0
+        osc_port: 5005
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: None
+    - 
+        name: mic1_MRF_0_SCATTER
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 22
+        output_channel_count: 2
+        azim_deg: 0
+        osc_port: 5010
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: "MODAL_RADIAL_FILTER+SPHERICAL_HEAD_FILTER"
+    - 
+        name: mic1_MRF_90
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 24
+        output_channel_count: 2
+        azim_deg: 90
+        osc_port: 5015
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: "MODAL_RADIAL_FILTER"
+    - 
+        name: mic1_MRF_180
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 26
+        output_channel_count: 2
+        azim_deg: 180
+        osc_port: 5020
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: "MODAL_RADIAL_FILTER"
+    - 
+        name: mic1_MRF_270
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 28
+        output_channel_count: 2
+        azim_deg: 270
+        osc_port: 5025
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: "MODAL_RADIAL_FILTER"
+    - 
+        name: mic1_MRF_0_NO_SCAT
+        starting_input_channel: 2
+        input_channel_count: 8
+        starting_output_channel: 30
+        output_channel_count: 2
+        azim_deg: 0
+        osc_port: 5035
+        hrir_type: "HRIR_SOFA"
+        hrir_file: "res/HRIR/KU100_THK/48k_32bit_128tap_2702dir.sofa"
+        hrir_delay: 0
+        hrir_level: 0
+        arir_type: "AS_MIRO"
+        arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
+        arir_delay: 0
+        arir_level: 0
+        compensation: "MODAL_RADIAL_FILTER+SPHERICAL_HEAD_FILTER"
+    
