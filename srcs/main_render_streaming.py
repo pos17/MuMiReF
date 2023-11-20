@@ -13,6 +13,8 @@ from time import sleep
 from mics_process.tracker import HeadTracker
 import numpy as np
 
+from srcs.mics_process.jack_monitor import JackMonitor
+
 # TODO: HANDLING LOGGING CORRECTLY
 
 _INITIALIZE_DELAY = 0.5
@@ -275,6 +277,33 @@ def main_renderer():
                     except (NameError, AttributeError):
                         pass
     
+    def setup_monitor(
+            name,
+            OSC_port,
+            block_length,
+            jack_chains,
+            starting_output_channel,
+            output_channel_count
+        ):
+        new_monitor = JackMonitor(
+            name = name,
+            OSC_port = OSC_port,
+            block_length = block_length,
+        )
+
+        server_input_ports = new_monitor.get_server_ports(is_audio=True,is_input=True)
+        
+        output_ports = []
+        for i in range(output_channel_count):
+            output_ports.append(server_input_ports[starting_output_channel+i])
+        
+        new_monitor.start(client_connect_target_ports=output_ports)
+
+        for i in range(len(jack_chains)):
+            source_ports = jack_chains[i]["renderer"].get_client_outputs()
+            source_name = jack_chains[i]["name"]
+            new_monitor.client_register_and_connect_new_bin_input(input_src_name=source_name,source_ports=source_ports)
+
     # code to be executed inside main
 
     print("starting system")
@@ -301,6 +330,7 @@ def main_renderer():
     sh_max_order = mics_config["SH_MAX_ORDER"]
     ir_truncation_level = mics_config["IR_TRUNCATION_LEVEL"]
     microphones = mics_config["microphones"]
+    monitoring_setup = mics_config["monitoring"]
     jack_chains = [] 
 
     system_config.BLOCK_LENGTH = BLOCK_LENGTH
@@ -324,7 +354,8 @@ def main_renderer():
             arir_level = microphones[i]["arir_level"]
             compensation_setting = microphones[i]["compensation"]
 
-            jack_chains.append([])
+            jack_chains.append({})
+            
 
             tracker = setup_tracker(name,None,OSC_port)
             pre_renderer = setup_pre_renderer(
@@ -347,8 +378,9 @@ def main_renderer():
                 )
 
             
-            jack_chains[i].append(tracker)
-            jack_chains[i].append(pre_renderer)
+            jack_chains[i]["tracker"] = tracker
+            jack_chains[i]["pre_renderer"]=pre_renderer
+            jack_chains[i]["name"] = name
             
             renderer = setup_renderer(
                 name=name,
@@ -374,7 +406,7 @@ def main_renderer():
                 azim_deg = azim_deg,
                 compensation_setting = compensation_setting
                 )
-            jack_chains[i].append(renderer)
+            jack_chains[i]["renderer"] = renderer
 
 
     except InterruptedError:
@@ -384,8 +416,15 @@ def main_renderer():
 
     for i in range(renderers_num):
         # set tracker reference position at application start
-        jack_chains[i][0].set_zero_position()
+        jack_chains[i]["tracker"].set_zero_position()
         system_config.IS_RUNNING.set()
+    
+    monitor_name = monitoring_setup["name"]
+    monitor_OSC_port = monitoring_setup["OSC_port"]
+    monitor_starting_output_channel = monitoring_setup["starting_output_channel"]
+    monitor_channel_count = monitoring_setup["output_channel_count"]
+
+    monitor = setup_monitor(name=monitor_name,OSC_port=monitor_OSC_port,jack_chains=jack_chains,starting_output_channel=monitor_starting_output_channel,output_channel_count=monitor_channel_count)
 
     # startup completed
     print(tools.SEPARATOR)
