@@ -1,4 +1,6 @@
 from .jack_client import JackClient
+from . import system_config
+import jack
 
 class JackMonitor(JackClient):
     """
@@ -22,13 +24,44 @@ class JackMonitor(JackClient):
     ):
     
         super().__init__(name=name,OSC_port=OSC_port, block_length=block_length, *args, **kwargs)
-        self.set_output_mute(True)
         # set attributes
         self._is_passthrough = True
         self._input_count = 0
         self._binaural_feeds = []
         self._listened_bin_input = None
 
+    # noinspection DuplicatedCode
+    def _client_register_inputs_in_addition(self, input_count):
+        """
+        Parameters
+        ----------
+        input_count : int
+            number of input ports to be registered to the current client
+
+        Raises
+        ------
+        RuntimeError
+            re-raise of jack.JackError
+        """
+        ##if input_count <= len(self._client.inports):
+        ##    return
+
+        # cleanup existing input ports
+        ##self._client.inports.clear()
+
+        try:
+            # create input ports according to source channel number (index starting from 1)
+            last_port = len(self._client.inports)
+            for number in range(1, input_count + 1):
+                self._client.inports.register(f"input_{last_port+number}")
+        except jack.JackError as e:
+            raise RuntimeError(f"[JackError]  {e}")
+
+        # recreate input buffer
+        self._input_buffer.init(
+            max_length_sec=system_config.CLIENT_MAX_DELAY_SEC,
+            channel_count=len(self._client.inports),
+        )
     
     def client_register_and_connect_inputs(self, source_ports=True):
         """
@@ -67,14 +100,17 @@ class JackMonitor(JackClient):
         #        raise ValueError(
         #            "no source ports given and no physical recording ports detected."
         #        )
-
-        self._client_register_inputs(len(source_ports))
+        
+        self._client_register_inputs_in_addition(len(source_ports))
         self._logger.info(
                 f"new list of inputs connected to monitoring"
             )
         if is_connect:
             # connect source to input ports
-            for src, dst in zip(source_ports, self._client.inports):
+            for src, dst in zip(source_ports, self._client.inports[-len(source_ports):]):
+                self._logger.info(
+                    f"src port: {src}, dst port: {dst}"
+                )
                 self._client.connect(src, dst)
 
         # restore beforehand execution state
@@ -101,3 +137,11 @@ class JackMonitor(JackClient):
 
         to_return = input_td[2*self._listened_bin_input:2*self._listened_bin_input+1,:]
         return to_return
+
+    def start(self,client_connect_target_ports):
+        super().start()
+        self._logger.debug("activating JACK client ...")
+        self._client.activate()
+        self._client_register_and_connect_outputs(client_connect_target_ports)
+        self._event_ready.set()
+        self.set_output_mute(True)

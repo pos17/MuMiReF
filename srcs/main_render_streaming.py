@@ -13,7 +13,7 @@ from time import sleep
 from mics_process.tracker import HeadTracker
 import numpy as np
 
-from srcs.mics_process.jack_monitor import JackMonitor
+from mics_process.jack_monitor import JackMonitor
 
 # TODO: HANDLING LOGGING CORRECTLY
 
@@ -303,7 +303,7 @@ def main_renderer():
             source_ports = jack_chains[i]["renderer"].get_client_outputs()
             source_name = jack_chains[i]["name"]
             new_monitor.client_register_and_connect_new_bin_input(input_src_name=source_name,source_ports=source_ports)
-
+        return new_monitor
     # code to be executed inside main
 
     print("starting system")
@@ -417,15 +417,15 @@ def main_renderer():
     for i in range(renderers_num):
         # set tracker reference position at application start
         jack_chains[i]["tracker"].set_zero_position()
-        system_config.IS_RUNNING.set()
+       
     
     monitor_name = monitoring_setup["name"]
-    monitor_OSC_port = monitoring_setup["OSC_port"]
+    monitor_OSC_port = monitoring_setup["osc_port"]
     monitor_starting_output_channel = monitoring_setup["starting_output_channel"]
     monitor_channel_count = monitoring_setup["output_channel_count"]
 
-    monitor = setup_monitor(name=monitor_name,OSC_port=monitor_OSC_port,jack_chains=jack_chains,starting_output_channel=monitor_starting_output_channel,output_channel_count=monitor_channel_count)
-
+    monitor = setup_monitor(name=monitor_name,block_length = BLOCK_LENGTH, OSC_port=monitor_OSC_port,jack_chains=jack_chains,starting_output_channel=monitor_starting_output_channel,output_channel_count=monitor_channel_count)
+    system_config.IS_RUNNING.set()
     # startup completed
     print(tools.SEPARATOR)
     logger.info(
