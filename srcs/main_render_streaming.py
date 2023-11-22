@@ -176,7 +176,7 @@ def main_renderer():
                 sh_is_enforce_pinv=False,
                 ir_trunc_db=ir_truncation_level,
                 is_main_client=True,
-                is_measure_levels=True,
+                is_measure_levels=False,
                 is_single_precision=system_config.IS_SINGLE_PRECISION,
                 # azim_deg=azim_deg,
                 # elevs_deg=0
@@ -425,11 +425,12 @@ def main_renderer():
     monitor_channel_count = monitoring_setup["output_channel_count"]
 
     monitor = setup_monitor(name=monitor_name,block_length = BLOCK_LENGTH, OSC_port=monitor_OSC_port,jack_chains=jack_chains,starting_output_channel=monitor_starting_output_channel,output_channel_count=monitor_channel_count)
+    monitor.choose_bin_input_to_listen(0)
     system_config.IS_RUNNING.set()
     # startup completed
     print(tools.SEPARATOR)
     logger.info(
         "use [CTRL]+[C] (once!) to interrupt execution or OSC for remote control ..."
     )
-
+    monitor.set_output_mute(False)
 main_renderer()

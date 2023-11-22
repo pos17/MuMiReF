@@ -804,7 +804,7 @@ class JackClient(SubProcess):
         times. Furthermore deliver (or log) overall system load based on a prediction by JACK.
         Latter is is done only when configured as a main client.
         """
-        if not self._is_measure_load or not config.IS_RUNNING.is_set():
+        if not self._is_measure_load or not system_config.IS_RUNNING.is_set():
             return
 
         if self._is_main_client:

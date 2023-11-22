@@ -1,6 +1,7 @@
 from .jack_client import JackClient
 from . import system_config
 import jack
+import numpy as np
 
 class JackMonitor(JackClient):
     """
@@ -29,6 +30,7 @@ class JackMonitor(JackClient):
         self._input_count = 0
         self._binaural_feeds = []
         self._listened_bin_input = None
+        self._channel_to_listen = None
 
     # noinspection DuplicatedCode
     def _client_register_inputs_in_addition(self, input_count):
@@ -129,14 +131,15 @@ class JackMonitor(JackClient):
     def choose_bin_input_to_listen(self, bin_input_index):
 
         self._listened_bin_input = bin_input_index
+        self._channel_to_listen = self._listened_bin_input*2
         self.set_output_mute(False)
 
     def _process(self, input_td):
         if self._listened_bin_input == None: 
-           return
+           return None
 
-        to_return = input_td[2*self._listened_bin_input:2*self._listened_bin_input+1,:]
-        return to_return
+        output_td = input_td[self._channel_to_listen:self._channel_to_listen+2]
+        return output_td
 
     def start(self,client_connect_target_ports):
         super().start()
