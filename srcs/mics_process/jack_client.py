@@ -26,7 +26,7 @@ class JackClient(SubProcess):
             **kwargs
         ):
 
-        super().__init__(name=name,OSC_port=OSC_port *args, **kwargs)
+        super().__init__(name=name,OSC_port=OSC_port, *args, **kwargs)
 
         self._is_main_client = is_main_client
         self._is_detect_clipping = is_detect_clipping

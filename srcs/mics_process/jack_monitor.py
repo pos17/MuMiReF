@@ -132,7 +132,11 @@ class JackMonitor(JackClient):
 
         self._listened_bin_input = bin_input_index
         self._channel_to_listen = self._listened_bin_input*2
-        self.set_output_mute(False)
+        if(self._output_mute==True):
+            self.set_output_mute(False)
+        self._logger.info(
+                    f"binaural input listened:{bin_input_index}"
+                )
 
     def _process(self, input_td):
         if self._listened_bin_input == None: 

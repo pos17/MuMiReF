@@ -2,6 +2,7 @@ clients_num: 6
 BLOCK_LENGTH: 2048
 SH_MAX_ORDER: 2
 IR_TRUNCATION_LEVEL: -60
+REMOTE_OSC_PORT: 5100
 monitoring:
     name: monitoring
     starting_output_channel: 32

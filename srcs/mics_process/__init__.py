@@ -11,6 +11,7 @@ __all__ = [
 # IMPORTANT: BE VERY CAUTIOUS IN CHANGING THE ORDER OF IMPORTS HERE !!!
 from ._multiprocessing import mp_context
 from .data_retriever import DataRetriever
+from ._remote import OscRemote
 from .filter_set import FilterSet
 from .tracker import HeadTracker
 from .compensation import Compensation

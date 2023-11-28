@@ -105,18 +105,19 @@ class OscRemote(object):
             client_name = tools.transform_into_osc_target(client.name)
 
             # see `JackClient` if not otherwise specified
-            add_mapping("mute", "set_output_mute")
-            add_mapping("volume", "set_output_volume_db")
-            add_mapping("volume_relative", "set_output_volume_relative_db")
-            add_mapping("volume_port_relative", "set_output_volume_port_relative_db")
-            add_mapping("delay", "set_input_delay_ms")
-            add_mapping("crossfade", "set_client_crossfade")  # see `JackRenderer`
-            add_mapping("passthrough", "set_client_passthrough")  # see `JackRenderer`
-            add_mapping("order", "set_renderer_sh_order")  # see `JackRenderer`
-            add_mapping("zero", "set_zero_position")  # see `HeadTracker`
-            add_mapping("azimuth", "set_azimuth_position")  # see `HeadTracker`
-            add_mapping("stop", "stop")  # see `JackPlayer`
-            add_mapping("play", "play")  # see `JackPlayer`
+            ## add_mapping("mute", "set_output_mute")
+            ## add_mapping("volume", "set_output_volume_db")
+            ## add_mapping("volume_relative", "set_output_volume_relative_db")
+            ## add_mapping("volume_port_relative", "set_output_volume_port_relative_db")
+            ## add_mapping("delay", "set_input_delay_ms")
+            ## add_mapping("crossfade", "set_client_crossfade")  # see `JackRenderer`
+            ## add_mapping("passthrough", "set_client_passthrough")  # see `JackRenderer`
+            ## add_mapping("order", "set_renderer_sh_order")  # see `JackRenderer`
+            ## add_mapping("zero", "set_zero_position")  # see `HeadTracker`
+            ## add_mapping("azimuth", "set_azimuth_position")  # see `HeadTracker`
+            ## add_mapping("stop", "stop")  # see `JackPlayer`
+            ## add_mapping("play", "play")  # see `JackPlayer`
+            add_mapping("monitor_num", "choose_bin_input_to_listen") # see 'JackMonitor'
 
             # TODO: implement `JackPlayer` restarting if playback was finished
             # player = _setup_player(

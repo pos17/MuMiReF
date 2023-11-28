@@ -420,7 +420,24 @@ def plot_ir_and_tf(
 
     return fig
 
+def transform_into_osc_target(name):
+    """
+    Parameters
+    ----------
+    name : str
+        client name that should be transformed
 
+    Returns
+    -------
+    str
+        simplified OSC target name
+    """
+    import re
+
+    if name.startswith(__package__):  # cut package name
+        name = name[len(__package__) :]
+    name = re.sub(r"\W+", "", name).lower()  # delete all non-alphanumeric characters
+    return f"/{name}"
 
 def export_plot(figure, name, logger=None, file_type="png"):
     """

@@ -9,6 +9,7 @@ from mics_process.filter_set import FilterSet
 from mics_process.jack_renderer import JackRenderer
 from mics_process import process_logger
 from mics_process import system_config
+from mics_process._remote import OscRemote
 from time import sleep
 from mics_process.tracker import HeadTracker
 import numpy as np
@@ -162,7 +163,7 @@ def main_renderer():
         new_renderer = None
         try:
             new_renderer = JackRenderer(
-                name,
+                f"{name}-Renderer",
                 OSC_port=OSC_port,
                 block_length=BLOCK_LENGTH,
                 filter_name=hrir_file,
@@ -176,7 +177,7 @@ def main_renderer():
                 sh_is_enforce_pinv=False,
                 ir_trunc_db=ir_truncation_level,
                 is_main_client=True,
-                is_measure_levels=False,
+                is_measure_levels=True,
                 is_single_precision=system_config.IS_SINGLE_PRECISION,
                 # azim_deg=azim_deg,
                 # elevs_deg=0
@@ -331,6 +332,8 @@ def main_renderer():
     ir_truncation_level = mics_config["IR_TRUNCATION_LEVEL"]
     microphones = mics_config["microphones"]
     monitoring_setup = mics_config["monitoring"]
+    REMOTE_OSC_PORT = mics_config["REMOTE_OSC_PORT"]
+    jack_system = {}
     jack_chains = [] 
 
     system_config.BLOCK_LENGTH = BLOCK_LENGTH
@@ -425,12 +428,28 @@ def main_renderer():
     monitor_channel_count = monitoring_setup["output_channel_count"]
 
     monitor = setup_monitor(name=monitor_name,block_length = BLOCK_LENGTH, OSC_port=monitor_OSC_port,jack_chains=jack_chains,starting_output_channel=monitor_starting_output_channel,output_channel_count=monitor_channel_count)
-    monitor.choose_bin_input_to_listen(0)
+    
+    
+    ## monitor.choose_bin_input_to_listen(0)
     system_config.IS_RUNNING.set()
     # startup completed
     print(tools.SEPARATOR)
     logger.info(
         "use [CTRL]+[C] (once!) to interrupt execution or OSC for remote control ..."
     )
+    remote = OscRemote(REMOTE_OSC_PORT, logger=logger)
+    sleep(_INITIALIZE_DELAY)
+
+    clients = [monitor]
+    for i in range(len(jack_chains)):
+        clients.append(jack_chains[i]["tracker"])
+        clients.append(jack_chains[i]["pre_renderer"])
+        clients.append(jack_chains[i]["renderer"])
+    # run remote interface until application is interrupted
+    try:
+        remote.start(clients=clients)
+    except KeyboardInterrupt:
+        logger.error("interrupted by user.")
+
     monitor.set_output_mute(False)
 main_renderer()
