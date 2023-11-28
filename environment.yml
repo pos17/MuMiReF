@@ -9,7 +9,7 @@ dependencies:
 #  - psutil  # for adjusting process priority, currently not used
   - pyfftw  # only on conda-forge
   - pyserial >=3.4
-  - python =3.8
+  - python =3.12
   - scipy >=0.16
   - pyyaml
   - pip:
