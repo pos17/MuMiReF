@@ -9,7 +9,7 @@ __metaclass__ = type
 import multiprocessing
 
 try:
-    mp_context = multiprocessing.get_context("fork")
+    #mp_context = multiprocessing.get_context("fork")
 
     # # TODO: "Forkserver" would be the recommended functionality according to
     # #  https://docs.python.org/3/library/multiprocessing.html
@@ -56,7 +56,7 @@ try:
     # #     self._position = ...
     # #     # How would that be possible?
     # #
-    # mp_context = multiprocessing.get_context("spawn")
+     mp_context = multiprocessing.get_context("spawn")
     # mp_context = multiprocessing.get_context("forkserver")
 except AttributeError:
     mp_context = multiprocessing

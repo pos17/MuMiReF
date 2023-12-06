@@ -1,9 +1,11 @@
 import logging
 
 from . import system_config, mp_context, tools, process_logger
+from multiprocessing import Process
 
+#class SubProcess(mp_context.Process):
+class SubProcess(Process):
 
-class SubProcess(mp_context.Process):
     """
     Base functionality to run arbitrary functionality in a separate process. To run the process
     the functions `start()`, `join()` and `terminate()` have to be used.
