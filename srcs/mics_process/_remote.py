@@ -105,9 +105,9 @@ class OscRemote(object):
             client_name = tools.transform_into_osc_target(client.name)
 
             # see `JackClient` if not otherwise specified
-            ## add_mapping("mute", "set_output_mute")
-            ## add_mapping("volume", "set_output_volume_db")
-            ## add_mapping("volume_relative", "set_output_volume_relative_db")
+            add_mapping("mute", "set_output_mute")
+            add_mapping("volume", "set_output_volume_db")
+            add_mapping("volume_relative", "set_output_volume_relative_db")
             ## add_mapping("volume_port_relative", "set_output_volume_port_relative_db")
             ## add_mapping("delay", "set_input_delay_ms")
             ## add_mapping("crossfade", "set_client_crossfade")  # see `JackRenderer`

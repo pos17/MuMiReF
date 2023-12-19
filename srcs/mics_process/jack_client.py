@@ -39,7 +39,8 @@ class JackClient(SubProcess):
         self._output_volume_relative = None
         self._event_ready = mp_context.Event()
         self._counter_dropout = mp_context.Value("i")
-
+        self.cpu_load_counter = 0
+        self.level_print_counter = 0
         # self.client = jack.Client(client_name, servername=servername)
 
         self._init_client(block_length)
@@ -67,14 +68,14 @@ class JackClient(SubProcess):
             # this should not be necessary here, but prevents errors when restarting `JackPlayer`
             
             #self._event_ready.wait()
-
+            self.increment_counters()
             # receive, process and deliver audio blocks
             
             self._process_deliver(self._process(self._process_receive()))
 
             # measure and log / provide individual client and overall system load
             
-            #self._report_load()
+            self._report_load()
 
         @self._client.set_shutdown_callback
         def shutdown(status, reason):
@@ -358,6 +359,13 @@ class JackClient(SubProcess):
         if event_ready_state_before:
             self._event_ready.set()
 
+    def increment_counters(self):
+        self.cpu_load_counter+=1
+        self.level_print_counter+=1
+        if(self.cpu_load_counter>=1000):
+            self.cpu_load_counter=0
+        if(self.level_print_counter>=1000):
+            self.level_print_counter=0
 
     # noinspection DuplicatedCode
     def _client_register_outputs(self, output_count):
@@ -485,6 +493,37 @@ class JackClient(SubProcess):
         if self._output_mute != new_state:
             self._output_mute = new_state
             self._logger.info(f'set mute state to {["OFF", "ON"][self._output_mute]}.')
+        
+        if self._is_measure_levels:
+                # calculate RMS level
+                rms = -200
+                if self._osc_client:
+                    # OSC only works with float64, see
+                    # https://github.com/attwad/python-osc/issues/102
+                    self._osc_client.send_message(
+                        f"{self._osc_name}/rms", [np.round(rms, 1).astype(np.float64),np.round(rms, 1).astype(np.float64)]
+                    )
+                else:
+                    log_str = np.array2string(
+                        rms, separator=",", precision=1, floatmode="fixed", sign="+"
+                    )
+                    self._logger.info(f"output RMS level [{log_str}]")
+
+                # calculate PEAK level
+                peak = -200.0
+                if self._osc_client:
+                    # OSC only works with float64, see
+                    # https://github.com/attwad/python-osc/issues/102
+                    self._osc_client.send_message(
+                        f"{self._osc_name}/peak", [np.round(peak, 2).astype(np.float64), np.round(peak, 2).astype(np.float64)]
+                    )
+                else:
+                    log_str = np.array2string(
+                        peak, separator=",", precision=2, floatmode="fixed", sign="+"
+                    )
+                    self._logger.debug(f"output PEAK level [{log_str}]")
+
+
 
         return new_state
 
@@ -523,6 +562,9 @@ class JackClient(SubProcess):
             [number of output channels]
         """
         log_str = "set relative output volumes"
+        self._logger.info(
+                f"{log_str}, {value_db_fs}"
+            )
         if value_db_fs is None or not self._check_alive(log_str):
             return
 
@@ -602,6 +644,7 @@ class JackClient(SubProcess):
         )
 
     def _set_output_volume(self, log_str, value_db_fs, port):
+        self._logger.info(f"in set_output_volume")
         # convert magnitude into decibel
         output_volume = 10 ** (value_db_fs / 20.0)
 
@@ -639,6 +682,7 @@ class JackClient(SubProcess):
             self._output_volume = output_volume
             self._logger.info(f"{log_str} to {value_db_fs:+.1f} dBFS.")
 
+        
         # print warning for positive dB_FS gain
         if np.greater(self._output_volume * self._output_volume_relative, 1).any():
             self._logger.warning("setting output volume > 0 dBFS.")
@@ -725,35 +769,36 @@ class JackClient(SubProcess):
             # apply output volume (scaling for all channels) as well as relative differences (
             # between channels)
             output_td *= self._output_volume * self._output_volume_relative
-
             if self._is_measure_levels:
-                # calculate RMS level
-                rms = tools.calculate_rms(output_td, is_level=True)
-                if self._osc_client:
-                    # OSC only works with float64, see
-                    # https://github.com/attwad/python-osc/issues/102
-                    self._osc_client.send_message(
-                        f"{self._osc_name}/rms", np.round(rms, 1).astype(np.float64)
-                    )
-                else:
-                    log_str = np.array2string(
-                        rms, separator=",", precision=1, floatmode="fixed", sign="+"
-                    )
-                    self._logger.info(f"output RMS level [{log_str}]")
+                if(self.cpu_load_counter%100):
+            
+                    # calculate RMS level
+                    rms = tools.calculate_rms(output_td, is_level=True)
+                    if self._osc_client:
+                        # OSC only works with float64, see
+                        # https://github.com/attwad/python-osc/issues/102
+                        self._osc_client.send_message(
+                            f"{self._osc_name}/rms", np.round(rms, 1).astype(np.float64)
+                        )
+                    else:
+                        log_str = np.array2string(
+                            rms, separator=",", precision=1, floatmode="fixed", sign="+"
+                        )
+                        self._logger.info(f"output RMS level [{log_str}]")
 
-                # calculate PEAK level
-                peak = tools.calculate_peak(output_td, is_level=True)
-                if self._osc_client:
-                    # OSC only works with float64, see
-                    # https://github.com/attwad/python-osc/issues/102
-                    self._osc_client.send_message(
-                        f"{self._osc_name}/peak", np.round(peak, 2).astype(np.float64)
-                    )
-                else:
-                    log_str = np.array2string(
-                        peak, separator=",", precision=2, floatmode="fixed", sign="+"
-                    )
-                    self._logger.debug(f"output PEAK level [{log_str}]")
+                    # calculate PEAK level
+                    peak = tools.calculate_peak(output_td, is_level=True)
+                    if self._osc_client:
+                        # OSC only works with float64, see
+                        # https://github.com/attwad/python-osc/issues/102
+                        self._osc_client.send_message(
+                            f"{self._osc_name}/peak", np.round(peak, 2).astype(np.float64)
+                        )
+                    else:
+                        log_str = np.array2string(
+                            peak, separator=",", precision=2, floatmode="fixed", sign="+"
+                        )
+                        self._logger.debug(f"output PEAK level [{log_str}]")
 
             # check array structure and dtype (first processing frame only)
             if self._is_first_frame:
@@ -804,27 +849,28 @@ class JackClient(SubProcess):
         times. Furthermore deliver (or log) overall system load based on a prediction by JACK.
         Latter is is done only when configured as a main client.
         """
-        if not self._is_measure_load or not system_config.IS_RUNNING.is_set():
-            return
+        if(self.cpu_load_counter%100):
+            if not self._is_measure_load or not system_config.IS_RUNNING.is_set():
+                return
 
-        if self._is_main_client:
-            # overall JACK system CPU load<r
-            load = round(self.get_cpu_load(), 1)
+            if self._is_main_client:
+                # overall JACK system CPU load<r
+                load = round(self.get_cpu_load(), 1)
+                if self._osc_client:
+                    self._osc_client.send_message("/load", load)
+                else:
+                    self._logger.debug(f"load system percent [{load}]")
+
+            # individual client JACK system load
+            t_percent = self._client.frame_time - self._client.last_frame_time
+            t_percent = round(100 * t_percent / self._client.blocksize)
+            if t_percent < 0:
+                t_percent = 0
+
             if self._osc_client:
-                self._osc_client.send_message("/load", load)
+                self._osc_client.send_message(f"{self._osc_name}/load", t_percent)
             else:
-                self._logger.debug(f"load system percent [{load}]")
-
-        # individual client JACK system load
-        t_percent = self._client.frame_time - self._client.last_frame_time
-        t_percent = round(100 * t_percent / self._client.blocksize)
-        if t_percent < 0:
-            t_percent = 0
-
-        if self._osc_client:
-            self._osc_client.send_message(f"{self._osc_name}/load", t_percent)
-        else:
-            self._logger.debug(f"load percent [{t_percent}]")
+                self._logger.debug(f"load percent [{t_percent}]")
 
     def _check_alive(self, msg=""):
         """

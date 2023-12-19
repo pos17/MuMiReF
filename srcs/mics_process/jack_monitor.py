@@ -31,6 +31,7 @@ class JackMonitor(JackClient):
         self._binaural_feeds = []
         self._listened_bin_input = None
         self._channel_to_listen = None
+        self.name = name 
 
     # noinspection DuplicatedCode
     def _client_register_inputs_in_addition(self, input_count):
@@ -137,6 +138,12 @@ class JackMonitor(JackClient):
         self._logger.info(
                     f"binaural input listened:{bin_input_index}"
                 )
+        message = "/" + self.name + "/listen"
+        if self._osc_client:
+            self._osc_client.send_message(message,bin_input_index)
+            self._logger.info(f"{message}: {bin_input_index}")
+        else:
+            self._logger.warning(f"no osc client")
 
     def _process(self, input_td):
         if self._listened_bin_input == None: 

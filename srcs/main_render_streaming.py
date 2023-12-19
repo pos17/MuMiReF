@@ -290,6 +290,7 @@ def main_renderer():
             name = name,
             OSC_port = OSC_port,
             block_length = block_length,
+            is_measure_levels=True,
         )
 
         server_input_ports = new_monitor.get_server_ports(is_audio=True,is_input=True)
@@ -321,7 +322,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_spatial_mic_renderer_1_6.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_renderer_5_2.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])
@@ -362,7 +363,7 @@ def main_renderer():
 
             tracker = setup_tracker(name,None,OSC_port)
             pre_renderer = setup_pre_renderer(
-                name=name,OSC_port=OSC_port+1,
+                name=name,OSC_port=OSC_port,
                 BLOCK_LENGTH=BLOCK_LENGTH,
                 starting_input_channel=starting_input_channel,
                 input_channel_count=input_channel_count,
@@ -387,7 +388,7 @@ def main_renderer():
             
             renderer = setup_renderer(
                 name=name,
-                OSC_port=OSC_port+2,
+                OSC_port=OSC_port,
                 BLOCK_LENGTH=BLOCK_LENGTH,
                 starting_input_channel=starting_input_channel,
                 input_channel_count=input_channel_count,
