@@ -322,7 +322,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_spatial_mic_renderer_5_2.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_renderer_1_6.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])

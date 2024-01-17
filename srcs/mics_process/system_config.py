@@ -46,7 +46,7 @@ LOGGING_FORMAT = "%(name)-@s  %(levelname)-8s  %(message)s"
 LOGGING_PATH = "log/"
 """Path of log messages being saved to, see `process_logger`."""
 
-CLIENT_MAX_DELAY_SEC = 1
+CLIENT_MAX_DELAY_SEC = 5
 """Input buffer delay limitation in s for all renderers."""
 
 ARIR_RADIAL_AMP = 18

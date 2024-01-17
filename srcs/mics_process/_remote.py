@@ -114,7 +114,7 @@ class OscRemote(object):
             ## add_mapping("passthrough", "set_client_passthrough")  # see `JackRenderer`
             ## add_mapping("order", "set_renderer_sh_order")  # see `JackRenderer`
             ## add_mapping("zero", "set_zero_position")  # see `HeadTracker`
-            ## add_mapping("azimuth", "set_azimuth_position")  # see `HeadTracker`
+            add_mapping("azimuth", "set_azimuth_position")  # see `HeadTracker`
             ## add_mapping("stop", "stop")  # see `JackPlayer`
             ## add_mapping("play", "play")  # see `JackPlayer`
             add_mapping("monitor_num", "choose_bin_input_to_listen") # see 'JackMonitor'
