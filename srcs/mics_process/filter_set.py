@@ -137,6 +137,13 @@ class FilterSet(object):
         by a pseudo inverse of the spherical harmonics base functions,
         see `sound_field_analysis-py` for reference! """
 
+        ENCODING = auto()
+        """Encoding filters preloaded and preencoded to be used as a source to encode microphone signals 
+        to spherical harmonics.
+        Filter instance created specifically to be able to use Voyage Audio encoding filters.
+        
+        """
+
     _ERROR_MSG_FD = "blocks in frequency domain have not been calculated yet."
     _ERROR_MSG_NM = "blocks in spherical harmonics domain have not been calculated yet."
 
@@ -208,6 +215,8 @@ class FilterSet(object):
                 sh_max_order=sh_max_order,
                 sh_is_enforce_pinv=sh_is_enforce_pinv,
             )
+        elif _type == FilterSet.Type.ENCODING:
+            return FilterSetMultiChannel(file_name=file_name, is_hrir=False)
 
     def __init__(self, file_name, is_hrir, is_hpcf=False):
         """

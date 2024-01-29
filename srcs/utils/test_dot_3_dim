@@ -1,0 +1,14 @@
+
+import numpy as np 
+import sound_field_analysis as sfa
+
+sh_m_rev_id = sfa.sph.reverseMnIds(2)
+input_block_nm = np.ones((9,10))
+for i in range(9):
+    input_block_nm[i,:] = input_block_nm[i,:]*(i+1)*range(10)
+print(input_block_nm)
+input_block_nm = input_block_nm[sh_m_rev_id][:, np.newaxis, :]
+print(input_block_nm)
+
+input_block_nm = np.repeat(input_block_nm, 2, axis=1)
+print(input_block_nm)

@@ -1,4 +1,5 @@
 
+from asyncio.log import logger
 from . import Compensation, system_config, tools, HeadTracker
 from copy import copy 
 import pyfftw
@@ -34,7 +35,9 @@ class Convolver(object):
         filter_set, 
         block_length=None, 
         source_positions=None, 
-        shared_tracker_data=None
+        shared_tracker_data=None,
+        is_measured_encoding = False,
+        filter_set_encoding = None,
         ## azim_deg = 0,
         ## elevs_deg = 0
     ):
@@ -76,10 +79,17 @@ class Convolver(object):
                 convolver = OverlapSaveConvolver(filter_set, block_length)
             else:
                 # for HRIR renderer
-                convolver = AdjustableShConvolver(
-                    ## filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
-                    filter_set, block_length, source_positions, shared_tracker_data
-                )
+                # if measured encoding filters are present
+                if is_measured_encoding:
+                    convolver = AdjustableShConvolverMeasuredEnc(
+                        ## filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                        filter_set, block_length, source_positions, shared_tracker_data,filter_set_encoding
+                    )
+                else:
+                    convolver = AdjustableShConvolver(
+                        ## filter_set, block_length, source_positions, azim_deg=azim_deg,elevs_deg=elevs_deg ##shared_tracker_data
+                        filter_set, block_length, source_positions, shared_tracker_data
+                    )
 
         # prevent running debugging help function in case of `AdjustableShConvolver` (needs to be
         # invoked after `AdjustableShConvolver.prepare_renderer_sh_processing()` instead!)
@@ -109,6 +119,7 @@ class Convolver(object):
         # do not run if called by an inheriting class
         if type(self) is Convolver:  # do not replace with `isinstance()`
             self._filter.calculate_filter_blocks_fd(None)
+            
 
     def __copy__(self):
         _filter = copy(self._filter)
@@ -1231,3 +1242,425 @@ class AdjustableShConvolver(AdjustableFdConvolver):
         return self._is_crossfade
 
 
+
+
+
+
+class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
+    """
+    Extension of `AdjustableFdConvolver` to allow fast convolution in spherical harmonics domain
+    while adjusting orientation by a rotation matrix i.e., for binaural rendering (depending on
+    the head  orientation).
+
+    The current spherical harmonics rendering order can be adjusted i.e., lowered, during execution.
+
+    Attributes
+    ----------
+    _sh_m : numpy.ndarray
+        set of spherical harmonics orders of size [count according to `sh_max_order`]
+    _sh_m_rev_id : list of int
+        set of reversed spherical harmonics orders indices of size
+        [count according to `sh_max_order`]
+    _sh_cur_order : int
+        current maximum spherical harmonics order being rendered
+    _sh_bases_weighted : numpy.ndarray
+        spherical harmonic bases weighted by grid weights of spatial sampling points of size
+        [number according to `sh_max_order`; number of input channels]
+    _last_sh_azim_nm : numpy.ndarray
+        set of spherical harmonics azimuth weights that were applied to the signal in the last
+        processing frame of size [count according to `sh_max_order`; 1; 1]
+    _comp : list of str or list of Compensation.Type or str or Compensation.Type
+        type of spherical harmonics compensation being applied to the filter
+    _comp_arir_config : sfa.io.ArrayConfiguration
+        recording / measurement microphone array configuration for spherical harmonics compensation
+        being applied to the filter
+    _comp_mrf_limit : int
+        maximum amplification limit in dB of modal radial filter being applied to the filter
+    """
+
+    ## def __init__(self, filter_set, block_length, source_positions, azim_deg=0, elevs_deg = 0): ##shared_tracker_data):
+    def __init__(self, filter_set, block_length, source_positions, shared_tracker_data,filter_set_encoding):
+    
+        """
+        Extends the function of `OverlapSaveConvolver` to initialize a binaural renderer by
+        loading the provided positions of virtual sound sources.
+
+        Parameters
+        ----------
+        source_positions : tuple of int or tuple of float
+            rendered binaural source positions as list of tuple of azimuth (counterclockwise) and
+            elevation in degrees, int or float values are possible
+        shared_tracker_data : multiprocessing.Array
+            shared data array from an existing tracker instance for dynamic binaural rendering, see
+            `HeadTracker`
+
+        Raises
+        ------
+        NotImplementedError
+            in case more then one `source_positions` are given
+        """
+        super().__init__(
+            filter_set=filter_set,
+            block_length=block_length,
+            source_positions=source_positions,
+            shared_tracker_data=shared_tracker_data,
+            ## azim_deg=azim_deg,
+            ## elevs_deg=elevs_deg
+        )
+
+        if self._sources_deg.shape[0] > 1:
+            raise NotImplementedError(
+                "more then one virtual source position given, which is not supported yet."
+            )
+
+        self._sh_m = None
+        self._sh_m_rev_id = None
+        self._sh_cur_order = None
+        self._sh_bases_weighted = None
+        self._last_filters_fd = None
+        self._last_sh_azim_nm = None
+        self._comp = None
+        self._comp_arir_config = None
+        self._comp_mrf_limit = None
+        self._encoding_filters = filter_set_encoding
+        self._encoding_filters.calculate_filter_blocks_fd(block_length)
+
+    def __copy__(self):
+        # _filter = copy(self._filter)
+        # _filter.load(block_length=self._block_length, is_prevent_logging=True,
+        #              is_single_precision=self._filter.get_dirac_td().dtype == np.float32)
+        # new = type(self)(_filter, self._block_length, self._sources_deg, self._tracker_deg)
+        # new.__dict__.update(self.__dict__)
+        # # this is supposed to be the filter of the pre-renderer !!!
+        # new.prepare_sh_processing(_filter.get_sh_configuration(), 0)
+        # return new
+        raise NotImplementedError("This implementation was not tested so far.")
+
+    def __str__(self):
+        return (
+            f"[{super().__str__()[1:-1]}, _sh_m=shape{self._sh_m.shape}, "
+            f"_sh_m_rev_id=shape{self._sh_m_rev_id.shape}, "
+            f"_sh_cur_order={self._sh_cur_order},"
+            f"_sh_bases_weighted=shape{self._sh_bases_weighted.shape}]"
+        )
+
+    # noinspection PyProtectedMember
+    def prepare_sh_processing(
+        self, input_sh_config, mrf_limit_db, compensation_type, logger=None
+    ):
+        """
+        Calculate components which can be prepared before spherical harmonic processing in
+        real-time. This contains calculating all spherical harmonics orders, coefficients and
+        base functions. Also a modal radial filter according to the provided input array
+        configuration, as well as further compensation filters will be generated and applied
+        preliminary.
+
+        Parameters
+        ----------
+        input_sh_config : FilterSetShConfig
+            combined filter configuration with all necessary information to transform an incoming
+            audio block into spherical harmonics sound field coefficients in real-time
+        mrf_limit_db : int
+            maximum modal amplification limit in dB
+        compensation_type : str or Compensation.Type
+            type of spherical harmonics processing compensation technique
+        logger : logging.Logger, optional
+            instance to provide identical logging behaviour as the parent process
+        """
+        
+        
+
+
+        # prepare attributes, copy to ensure C-order
+        self._sh_m = input_sh_config.sh_m.copy()
+        self._sh_m_rev_id = sfa.sph.reverseMnIds(self._filter._sh_max_order)
+        self._sh_cur_order = self._filter._sh_max_order
+        self._sh_bases_weighted = input_sh_config.sh_bases_weighted.copy()
+        self._last_sh_azim_nm = np.zeros(
+            (self._sh_bases_weighted.shape[0], 1, 1),
+            dtype=self._sh_bases_weighted.dtype,
+        )
+
+        # store SH compensation configurations, in case it should be re-applied
+        #self._comp = [compensation_type, Compensation.Type.MRF]
+        self._comp = [compensation_type]
+        self._comp_arir_config = input_sh_config.arir_config
+        self._comp_mrf_limit = mrf_limit_db
+
+        # apply SH compensation
+        self._apply_sh_compensation(is_plot=True, logger=logger)
+
+        #logger.info(f"sh bases weighted dimensions: {input_sh_config.sh_bases_weighted.shape}")
+
+        # adjust buffer block sizes according to array configuration
+        arir_channel_count = input_sh_config.sh_bases_weighted.shape[-1]
+        self._input_block_td = np.zeros(
+            (arir_channel_count, self._block_length * 2),
+            dtype=self._filter.get_dirac_td().dtype,
+        )
+
+        # catch up on running debugging help function in case of `AdjustableShConvolver`
+        if system_config.IS_DEBUG_MODE:
+            self._debug_filter_block(input_count=arir_channel_count,is_generate_noise=True)
+
+    # noinspection PyProtectedMember
+    def update_sh_processing(self, sh_new_order, logger=None):
+        """
+        Update the current spherical harmonics processing order. With that, potentially used
+        compensation filters will be re-calculated and re-applied.
+
+        Parameters
+        ----------
+        sh_new_order : int or float or None
+            desired SH processing order
+        logger : logging.Logger, optional
+            instance to provide identical logging behaviour as the parent process
+
+        Returns
+        -------
+        int
+            actually realized SH processing order
+        """
+        if sh_new_order is None:
+            # restore max order if no value is specified
+            sh_new_order = self._filter._sh_max_order
+        else:
+            # cast to integer
+            sh_new_order = int(sh_new_order)
+
+        if not 0 <= sh_new_order <= self._filter._sh_max_order:
+            logger.error(
+                f'value "{sh_new_order}" out of bounds, "set SH processing order" ignored.'
+            )
+            return
+        if self._sh_cur_order == sh_new_order:
+            return sh_new_order
+
+        # temporarily pause execution
+        event_running_state_before = system_config.IS_RUNNING.is_set()
+        system_config.IS_RUNNING.clear()
+
+        # adjust current SH order in convolver
+        self._sh_cur_order = sh_new_order
+        # re-apply adjusted SH compensations in convolver
+        self._apply_sh_compensation(is_plot=False, logger=logger)
+
+        # restore beforehand execution state
+        if event_running_state_before:
+            system_config.IS_RUNNING.set()
+
+        return sh_new_order
+
+
+    # TODO: Restore use of compensation as preimplemented
+    
+    # noinspection PyProtectedMember
+    def _apply_sh_compensation(self, is_plot=True, logger=None):
+        """
+        Calculate and apply modal radial filter as well as further compensation filters. This
+        function can be re-used during runtime, in case aspects of the rendering configuration
+        change i.e., the current spherical harmonics rendering order.
+
+        Parameters
+        ----------
+        is_plot : bool, optional
+            if compensation filters should be plotted and exported
+        logger : logging.Logger, optional
+            instance to provide identical logging behaviour as the parent process
+        """
+        # reset compensation specific parameters to initial values (relevant when re-applying the
+        # compensations)
+        Compensation.reset_config(is_plot=is_plot)
+
+        # (re)calculate block buffers
+        self._filter.calculate_filter_blocks_nm()
+
+        # backup raw block buffers
+        irs_blocks_nm_before = self._filter._irs_blocks_nm.copy()
+
+        # generate specified compensations based on one block length
+        comp_nm = Compensation.generate_by_type(
+            compensation_types=self._comp,
+            filter_set=self._filter,
+            arir_config=self._comp_arir_config,
+            amp_limit_db=self._comp_mrf_limit,
+            nfft=None,
+            nfft_padded=self._input_block_td.shape[-1],
+            logger=logger,
+        )
+
+        # apply compensations
+        self._filter._irs_blocks_nm *= comp_nm
+
+        # plot comparison of raw and compensated block buffers
+        name = self._filter._generate_plot_name(
+            block_length=self._block_length, logger=logger
+        )
+        tools.export_plot(
+            figure=tools.plot_nm_rms(
+                data_nm_fd=np.concatenate(
+                    (irs_blocks_nm_before, self._filter._irs_blocks_nm), axis=0
+                )
+            ),
+            name=f"{name}_COMP",
+            logger=logger,
+        )
+
+    def get_input_channel_count(self):
+        """
+        Returns
+        -------
+        int
+            number of processed input channels
+        """
+        return self._input_block_td.shape[-2]
+
+    def filter_block(self, input_block_td):
+        """
+        Process a block of samples with the given `FilterSet`. Steps before the complex
+        multiplication are provided by `_filter_block_shift_and_convert_input()`. Steps after the
+        complex multiplication are provided by `_filter_block_shift_and_convert_result()`.
+
+        In passthrough mode, the functionality of `OverlapSaveConvolver` filtering is used.
+
+        When the current rendering order is lowered during execution, the sound field is still
+        decomposed at the full maximum order. Although, only coefficients up to the specified
+        current order are used to calculated the ear signals. For best efficiency also the
+        decomposition would only be done at the current order, but the implementation would
+        become much more complicated (sizes of all internal buffers in SH domain would change).
+
+        Parameters
+        ----------
+        input_block_td : numpy.ndarray or None
+            block of time domain input samples of size [number of input channels; `_block_length`]
+
+        Returns
+        -------
+        numpy.ndarray
+            block of filtered time domain output samples of size [number of output channels;
+            `_block_length`]
+        """
+        if self._is_passthrough or input_block_td is None:
+            return super().filter_block(input_block_td)
+
+        # transform into frequency domain and sh-coefficients
+        
+        #input_block_nm_1 = sfa.process.spatFT_RT(
+        #    data=self._filter_block_shift_and_convert_input(input_block_td),
+        #    spherical_harmonic_weighted=self._sh_bases_weighted,
+        #)
+        
+
+        input_block_nm = self._sh_encode(data=self._filter_block_shift_and_convert_input(input_block_td))
+
+
+        #logger.info(f"dim of filter encoding: {np.shape(input_block_nm)} ")
+        #logger.info(f"dim of math encoding: {np.shape(input_block_nm_1)} ")
+        # # _TODO: implement block-wise processing if filter is longer
+        # for filter_block_nm, block_nm in zip(
+        #     self._filter.get_filter_blocks_nm(), self._blocks_nm
+        # ):
+        #     block_nm[0] += filter_block_nm * input_block_nm * ...
+
+        # apply reverse index and adjust size according to filter channels
+        #logger.info(f"dim of sig pre new axis: {np.shape(input_block_nm)} ")
+        input_block_nm = input_block_nm[self._sh_m_rev_id][:, np.newaxis, :]
+        #input_block_nm = input_block_nm[:][:, np.newaxis, :]
+        
+        #logger.info(f"dim of sig post new axis: {np.shape(input_block_nm)} ")
+        input_block_nm = np.repeat(input_block_nm, self._blocks_fd.shape[-2], axis=1)
+        #logger.info(f"dim of sig post repeat: {np.shape(input_block_nm)} ")
+        #logger.info(f"blocks fd shape: {self._blocks_fd.shape[-2]} ")
+
+        # apply HRIR coefficients
+        #logger.info(f"dim of filter filter_block: {np.shape(self._filter.get_filter_blocks_nm()[0])} ")
+        input_block_nm *= self._filter.get_filter_blocks_nm()[0]
+
+        # get head-tracker position (neglect elevation)
+        azim_deg, _ = self._calculate_individual_directions()
+        ## azim_deg = self.track_azim
+        ## _ = self.track_elev
+        sh_azim_nm = np.exp(
+            self._blocks_fd.dtype.type(-1j) * self._sh_m * np.deg2rad(azim_deg)
+        )
+        #logger.info(f"sh_azim_nm: {sh_azim_nm}")
+        # consider only the current rendering order here
+        sh_azim_nm = sh_azim_nm[: (self._sh_cur_order + 1) ** 2, np.newaxis, np.newaxis]
+        
+        # calculation back into frequency domain into current buffer, after applying rotation
+        # coefficients
+        self._blocks_fd[0, 0] = np.sum(
+            input_block_nm[: sh_azim_nm.shape[0]] * sh_azim_nm, axis=0
+            #input_block_nm, axis=0
+        )
+        # transform back into time domain
+        output_in_block_td = self._filter_block_shift_and_convert_result(
+            is_last_block=False
+        )
+
+        # skip further calculations in case no crossfade in time domain should be done
+        if not self._is_crossfade:
+            return output_in_block_td
+
+        # calculation back into frequency domain into last buffer, after applying rotation
+        # coefficients
+        self._last_blocks_fd[0, 0] = np.sum(
+            input_block_nm[: self._last_sh_azim_nm.shape[0]] * self._last_sh_azim_nm,
+            axis=0,
+            #input_block_nm, axis=0
+        )
+        # transform back into time domain
+        output_out_block_td = self._filter_block_shift_and_convert_result(
+            is_last_block=True
+        )
+
+        # store last used azimuth exponents
+        self._last_sh_azim_nm = sh_azim_nm  # copy should not be necessary here
+
+        # add in time domain after applying windows
+        return (output_in_block_td * self._window_in_td) + (
+            output_out_block_td * self._window_out_td
+        )
+
+    def set_crossfade(self, new_state=None):
+        """
+        Parameters
+        ----------
+        new_state : bool or None, optional
+            new crossfade state if output signals applying the current filter should be cross-faded
+            with the output signals of the last filter, if `None` is given this function works as a
+            toggle between states
+
+        Returns
+        -------
+        bool
+            actually realized crossfade state
+        """
+        try:
+            super().set_crossfade(new_state)
+        except AttributeError:
+            pass
+
+        # clean buffers if crossfade was turned off
+        if not self._is_crossfade:
+            self._last_sh_azim_nm.fill(0)
+
+        return self._is_crossfade
+
+    def _sh_encode(self,data):
+        encoding_filter = self._encoding_filters.get_filter_blocks_fd()
+        #mat_encoding_filter = np.reshape(encoding_filter,(8,8,np.shape(data)[1]))
+        #logger.info(f"encoding_filter shape: {np.shape(encoding_filter)}" )
+        
+        #logger.info(f"encoding shape: {np.shape(encoding_filter[0,0,2+(3*8),:])}" )
+        res = np.zeros((9,np.shape(data)[1]),dtype=data.dtype)
+        for i in range(8):
+            for j in range(8):
+                res_row = data[j,:] * encoding_filter[0,0,i+j*8,:] 
+                if i < 6: 
+                    writeChannel = i
+                else:
+                    writeChannel = i + 1
+                res[writeChannel,:] += res_row
+            #logger.info(f"R channel abs sum: {np.sum(np.abs(res[6,:]))}")
+        return res
