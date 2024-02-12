@@ -1,5 +1,6 @@
 
 from asyncio.log import logger
+from asyncore import write
 from . import Compensation, system_config, tools, HeadTracker
 from copy import copy 
 import pyfftw
@@ -115,6 +116,8 @@ class Convolver(object):
         self._is_passthrough = False
         self._rfft = None
         self._irfft = None
+        self._fft = None
+        self._ifft = None
 
         # do not run if called by an inheriting class
         if type(self) is Convolver:  # do not replace with `isinstance()`
@@ -137,6 +140,8 @@ class Convolver(object):
             f"[ID={id(self)}, _filter={self._filter}, _is_passthrough={self._is_passthrough}, "
             f"_rfft=shape{self._rfft.input_shape}--shape{self._rfft.output_shape}, "
             f"_irfft=shape{self._irfft.input_shape}--shape{self._irfft.output_shape}]"
+            f"_fft=shape{self._fft.input_shape}--shape{self._fft.output_shape}, "
+            f"_ifft=shape{self._ifft.input_shape}--shape{self._ifft.output_shape}]"
         )
 
     def _clear_buffers(self):
@@ -167,6 +172,12 @@ class Convolver(object):
             np.zeros_like(self._filter.get_dirac_td()), overwrite_input=True
         )
         self._irfft = pyfftw.builders.irfft(
+            np.zeros_like(self._filter.get_dirac_blocks_fd()[0]), overwrite_input=False
+        )
+        self._fft = pyfftw.builders.fft(
+            np.zeros_like(self._filter.get_dirac_td()), overwrite_input=True
+        )
+        self._ifft = pyfftw.builders.ifft(
             np.zeros_like(self._filter.get_dirac_blocks_fd()[0]), overwrite_input=False
         )
     
@@ -213,11 +224,14 @@ class Convolver(object):
         # catch up with optimizing DFT, if had not been done yet
         if not self._rfft or not self._irfft:
             self.init_fft_optimize()
+        
+        if not self._fft or not self._ifft:
+            self.init_fft_optimize()
 
         # generate input blocks
         if not input_count:  # 0 or None
             input_count = (
-                self._rfft.input_shape[-2]
+                self._fft.input_shape[-2]
                 if system_config.IS_PYFFTW_MODE
                 else self._filter.get_dirac_td().shape[-2]
             )
@@ -225,7 +239,7 @@ class Convolver(object):
         # noinspection PyUnresolvedReferences
         # do not replace with `isinstance()` because of inheritance!
         block_length = (
-            self._rfft.input_shape[-1]
+            self._fft.input_shape[-1]
             if (system_config.IS_PYFFTW_MODE and type(self) is Convolver)
             else self._block_length
         )
@@ -272,7 +286,7 @@ class Convolver(object):
 
         # transform into frequency domain
         input_fd = (
-            self._rfft(input_td) if system_config.IS_PYFFTW_MODE else np.fft.rfft(input_td)
+            self._fft(input_td) if system_config.IS_PYFFTW_MODE else np.fft.fft(input_td)
         )
 
         # do complex multiplication
@@ -280,7 +294,7 @@ class Convolver(object):
 
         # transform back into time domain
         return (
-            self._irfft(result_fd) if system_config.IS_PYFFTW_MODE else np.fft.irfft(result_fd)
+            self._ifft(result_fd) if system_config.IS_PYFFTW_MODE else np.fft.ifft(result_fd)
         )
 
     # noinspection PyProtectedMember
@@ -402,8 +416,8 @@ class OverlapSaveConvolver(Convolver):
         if not system_config.IS_PYFFTW_MODE:
             return
 
-        self._rfft = pyfftw.builders.rfft(self._input_block_td, overwrite_input=True)
-        self._irfft = pyfftw.builders.irfft(self._blocks_fd[0], overwrite_input=False)
+        self._fft = pyfftw.builders.fft(self._input_block_td, overwrite_input=True)
+        self._ifft = pyfftw.builders.ifft(self._blocks_fd[0], overwrite_input=False)
 
     def filter_block(self, input_block_td):
         """
@@ -476,9 +490,9 @@ class OverlapSaveConvolver(Convolver):
 
         # transform stored blocks into frequency domain
         buffer_block_fd = (
-            self._rfft(self._input_block_td)
+            self._fft(self._input_block_td)
             if system_config.IS_PYFFTW_MODE
-            else np.fft.rfft(self._input_block_td)
+            else np.fft.fft(self._input_block_td)
         )
 
         return buffer_block_fd
@@ -528,9 +542,9 @@ class OverlapSaveConvolver(Convolver):
 
         # transform first block back into time domain
         first_block_td = (
-            self._irfft(buffer_blocks_fd[0])
+            self._ifft(buffer_blocks_fd[0])
             if system_config.IS_PYFFTW_MODE
-            else np.fft.irfft(buffer_blocks_fd[0])
+            else np.fft.ifft(buffer_blocks_fd[0])
         )
 
         # check if partitioned convolution was done
@@ -1390,6 +1404,8 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
         # apply SH compensation
         self._apply_sh_compensation(is_plot=True, logger=logger)
 
+        
+
         #logger.info(f"sh bases weighted dimensions: {input_sh_config.sh_bases_weighted.shape}")
 
         # adjust buffer block sizes according to array configuration
@@ -1490,7 +1506,7 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
         )
 
         # apply compensations
-        self._filter._irs_blocks_nm *= comp_nm
+        #self._filter._irs_blocks_nm *= comp_nm
 
         # plot comparison of raw and compensated block buffers
         name = self._filter._generate_plot_name(
@@ -1563,19 +1579,46 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
         #     block_nm[0] += filter_block_nm * input_block_nm * ...
 
         # apply reverse index and adjust size according to filter channels
-        #logger.info(f"dim of sig pre new axis: {np.shape(input_block_nm)} ")
         input_block_nm = input_block_nm[self._sh_m_rev_id][:, np.newaxis, :]
+        
         #input_block_nm = input_block_nm[:][:, np.newaxis, :]
         
         #logger.info(f"dim of sig post new axis: {np.shape(input_block_nm)} ")
         input_block_nm = np.repeat(input_block_nm, self._blocks_fd.shape[-2], axis=1)
         #logger.info(f"dim of sig post repeat: {np.shape(input_block_nm)} ")
         #logger.info(f"blocks fd shape: {self._blocks_fd.shape[-2]} ")
+        
+        # for mm in range(9):
+        #     if mm == 0: #or mm == 1:
+        #         input_block_nm[mm,:,:] *=1
+        #     elif mm == 3:
+        #         input_block_nm[mm,1,:]*=-1
+        #     else:
+        #         input_block_nm[mm,:,:] =0
+
+        # my_filter = self._filter.get_filter_blocks_nm()[0][self._sh_m_rev_id]
+        # for mm in range(np.size(self._sh_m)):
+        #     my_filter[mm] *= -1**(mm) 
+
 
         # apply HRIR coefficients
-        #logger.info(f"dim of filter filter_block: {np.shape(self._filter.get_filter_blocks_nm()[0])} ")
-        input_block_nm *= self._filter.get_filter_blocks_nm()[0]
+        #logger.info(f"dim of filter filter_block: {np.shape(self._filter.get_filter_blocks_nm())} ")
+        #input_block_nm *= self._filter.get_filter_blocks_nm()[0]
+        #input_block_nm *= my_filter
+        
 
+        for mm in range(9):
+            if mm == 0 or mm==2 :
+                input_block_nm[mm,:,:]*=self._filter.get_filter_blocks_nm()[0][mm,:,:]*0.5
+            elif mm == 3:
+                input_block_nm[mm,1,:]*=self._filter.get_filter_blocks_nm()[0][1,1,:]
+                input_block_nm[mm,0,:]*=self._filter.get_filter_blocks_nm()[0][1,0,:]
+            elif mm == 1:
+                input_block_nm[mm,:,:] *=self._filter.get_filter_blocks_nm()[0][3,:,:]
+            else:
+                input_block_nm[mm,:,:] *=self._filter.get_filter_blocks_nm()[0][mm,:,:]*0
+
+       
         # get head-tracker position (neglect elevation)
         azim_deg, _ = self._calculate_individual_directions()
         ## azim_deg = self.track_azim
@@ -1587,6 +1630,7 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
         # consider only the current rendering order here
         sh_azim_nm = sh_azim_nm[: (self._sh_cur_order + 1) ** 2, np.newaxis, np.newaxis]
         
+
         # calculation back into frequency domain into current buffer, after applying rotation
         # coefficients
         self._blocks_fd[0, 0] = np.sum(
@@ -1598,6 +1642,7 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
             is_last_block=False
         )
 
+        output_in_block_td = np.real(output_in_block_td)
         # skip further calculations in case no crossfade in time domain should be done
         if not self._is_crossfade:
             return output_in_block_td
@@ -1610,10 +1655,11 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
             #input_block_nm, axis=0
         )
         # transform back into time domain
+       
         output_out_block_td = self._filter_block_shift_and_convert_result(
             is_last_block=True
         )
-
+        output_out_block_td = np.real(output_out_block_td)
         # store last used azimuth exponents
         self._last_sh_azim_nm = sh_azim_nm  # copy should not be necessary here
 
@@ -1653,14 +1699,42 @@ class AdjustableShConvolverMeasuredEnc(AdjustableShConvolver):
         #logger.info(f"encoding_filter shape: {np.shape(encoding_filter)}" )
         
         #logger.info(f"encoding shape: {np.shape(encoding_filter[0,0,2+(3*8),:])}" )
+        #print(data.dtype)
         res = np.zeros((9,np.shape(data)[1]),dtype=data.dtype)
+
         for i in range(8):
             for j in range(8):
                 res_row = data[j,:] * encoding_filter[0,0,i+j*8,:] 
-                if i < 6: 
-                    writeChannel = i
-                else:
-                    writeChannel = i + 1
-                res[writeChannel,:] += res_row
+                # if i < 6: 
+                #     writeChannel = i
+                # else:
+                #     writeChannel = i + 1
+                # res[writeChannel,:] += res_row
+                if i==0:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row
+                elif i==1:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row
+                elif i==2:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row
+                elif i==3:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row
+                elif i==4:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row*0
+                elif i==5:
+                    writeChannel= i
+                    res[writeChannel,:] += res_row*0
+                elif i==6:
+                    writeChannel= i+1
+                    res[writeChannel,:] += res_row*0
+                elif i==7:
+                    writeChannel= i+1
+                    res[writeChannel,:] += res_row*0
+                
+            #res[writeChannel] *= (-1)**(writeChannel +1)
             #logger.info(f"R channel abs sum: {np.sum(np.abs(res[6,:]))}")
         return res

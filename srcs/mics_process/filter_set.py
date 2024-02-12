@@ -653,7 +653,7 @@ class FilterSet(object):
         # cut signal into slices and stack on new axis after transformation in frequency domain
         self._irs_blocks_fd = np.stack(
             [
-                np.fft.rfft(block_td, block_length_2)
+                np.fft.fft(block_td, block_length_2)
                 for block_td in np.dsplit(self._irs_td, block_count)
             ]
         )
