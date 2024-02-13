@@ -32,6 +32,7 @@ class JackMonitor(JackClient):
         self._listened_bin_input = None
         self._channel_to_listen = None
         self.name = name 
+        self.first_time = True
 
     # noinspection DuplicatedCode
     def _client_register_inputs_in_addition(self, input_count):
@@ -133,8 +134,9 @@ class JackMonitor(JackClient):
 
         self._listened_bin_input = bin_input_index
         self._channel_to_listen = self._listened_bin_input*2
-        if(self._output_mute==True):
+        if(self._output_mute==True and self.first_time):
             self.set_output_mute(False)
+            self.first_time = False
         self._logger.info(
                     f"binaural input listened:{bin_input_index}"
                 )

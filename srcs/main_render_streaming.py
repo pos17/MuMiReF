@@ -158,7 +158,10 @@ def main_renderer():
         existing_tracker,
         existing_pre_renderer,
         azim_deg,
-        compensation_setting
+        compensation_setting,
+        is_measured_encoding,
+        encoding_filter_name,
+        encoding_filter_type
     ):
         new_renderer = None
         try:
@@ -179,6 +182,9 @@ def main_renderer():
                 is_main_client=True,
                 is_measure_levels=True,
                 is_single_precision=system_config.IS_SINGLE_PRECISION,
+                is_measured_encoding = is_measured_encoding,
+                encoding_filter_name = encoding_filter_name,
+                encoding_filter_type = encoding_filter_type,
                 # azim_deg=azim_deg,
                 # elevs_deg=0
             )
@@ -322,7 +328,7 @@ def main_renderer():
         print("python version > 3.0")
 
     # opening config file
-    with open('./srcs/config_spatial_mic_renderer_1_6.yml', 'r') as file:
+    with open('./srcs/config_spatial_mic_renderer_4_test_perc.yml', 'r') as file:
         mics_config = yaml.safe_load(file) 
     logger = process_logger.setup()
     #print(mics_config["microphones"][1]["name"])
@@ -357,7 +363,9 @@ def main_renderer():
             arir_delay = microphones[i]["arir_delay"]
             arir_level = microphones[i]["arir_level"]
             compensation_setting = microphones[i]["compensation"]
-
+            is_measured_encoding = microphones[i]["is_measured_encoding"]
+            encoding_filter_name = microphones[i]["encoding_filter_name"]
+            encoding_filter_type = microphones[i]["encoding_filter_type"]
             jack_chains.append({})
             
 
@@ -408,7 +416,10 @@ def main_renderer():
                 existing_tracker=tracker,
                 existing_pre_renderer=pre_renderer,
                 azim_deg = azim_deg,
-                compensation_setting = compensation_setting
+                compensation_setting = compensation_setting,
+                is_measured_encoding = is_measured_encoding,
+                encoding_filter_name=encoding_filter_name,
+                encoding_filter_type=encoding_filter_type
                 )
             jack_chains[i]["renderer"] = renderer
 
