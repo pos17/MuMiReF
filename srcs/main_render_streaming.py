@@ -202,17 +202,19 @@ def main_renderer():
 
             if sh_max_order is not None and existing_pre_renderer:
                     prerenderer_sh_config = existing_pre_renderer.get_pre_renderer_sh_config()
+                    
                     if(sh_max_order == 2):
                         prerenderer_sh_config.sh_bases_weighted[-3,:] = 0
+                    
                     new_renderer.prepare_renderer_sh_processing(
                         input_sh_config= prerenderer_sh_config, ## existing_pre_renderer.get_pre_renderer_sh_config(),
                         mrf_limit_db=system_config.ARIR_RADIAL_AMP,
                         compensation_type= compensation_setting ##system_config.SH_COMPENSATION_TYPE,
                     )
-
+            
             new_renderer.start(client_connect_target_ports=output_ports)
-            print("output ports:")
-            print(output_ports)
+            #print("output ports:")
+            #print(output_ports)
             ## new_jack_renderer._client_register_and_connect_outputs(target_ports=output_ports)
             
             new_renderer.set_output_volume_db(hrir_level)
@@ -413,7 +415,7 @@ def main_renderer():
                 arir_mute=False,
                 sh_max_order=sh_max_order,
                 ir_truncation_level=ir_truncation_level,
-                existing_tracker=tracker,
+                existing_tracker= tracker,
                 existing_pre_renderer=pre_renderer,
                 azim_deg = azim_deg,
                 compensation_setting = compensation_setting,
@@ -421,6 +423,7 @@ def main_renderer():
                 encoding_filter_name=encoding_filter_name,
                 encoding_filter_type=encoding_filter_type
                 )
+            renderer.set_client_crossfade(True)
             jack_chains[i]["renderer"] = renderer
 
 

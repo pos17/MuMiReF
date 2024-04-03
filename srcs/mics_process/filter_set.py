@@ -1,4 +1,4 @@
-
+import sys
 import os
 import numpy as np
 from enum import auto, Enum
@@ -8,6 +8,7 @@ import sound_field_analysis as sfa
 import pysofaconventions as sofa
 from collections import namedtuple
 from . import DataRetriever, tools
+from scipy import special as scy
 
 class FilterSet(object):
     """
@@ -1264,18 +1265,94 @@ class FilterSetMiro(FilterSet):
 
         # calculate stacked SH orders and modes
         sh_m = sfa.sph.mnArrays(nMax=self._sh_max_order)[0].astype(np.int16)
+        #sh_n = sfa.sph.mnArrays(nMax=self._sh_max_order)[1].astype(np.int16)
+        
+        #[sh_m,sh_n] = sfa.sph.mnArrays(nMax=self._sh_max_order).astype(np.int16)
 
         # calculate sh base functions, see `sound-field-analysis-py` `process.spatFT()` for
         # reference
+        #sh_m = np.delete(sh_m,-3)
+        #sh_n = np.delete(sh_n,-3)
+        #print(sh_m)
+        #print(sh_n)
+        #sh_bases = scy.sph_harm(sh_m, sh_n, self._irs_grid.azimuth, self._irs_grid.colatitude)
+
         sh_bases = sfa.sph.sph_harm_all(
             nMax=self._sh_max_order,
             az=self._irs_grid.azimuth,
             co=self._irs_grid.colatitude,
         ).astype(dtype)
+        #print(sh_bases)
+        #print("sh_bases")
+        # ignore underflow FloatingPointError in `numpy.matmul()`
+        #with np.errstate(under="ignore"):
+        #    if self._sh_is_enforce_pinv or self._irs_grid.weight is None:
+        #        # calculate pseudo inverse since no grid weights are given
+        #        sh_bases_weighted = np.linalg.pinv(sh_bases)
+        #    else:
+        #        # apply given grid weights
+        #        sh_bases_weighted = np.conj(sh_bases).T * (
+        #            4 * np.pi * self._irs_grid.weight
+        #        )
 
+       # print(self._irs_grid.weight)
+        #àprint("weights:")
+        #print("sh_bases_weighted")
+        #print(sh_bases_weighted)
+        #print(sh_bases_weighted)
+        #return FilterSetShConfig(sh_m, sh_bases_weighted, self._arir_config)
+
+    #def my_get_sh_configuration(self):
+        """
+        Returns
+        -------
+        FilterSetShConfig
+            combined filter configuration with all necessary information to transform an incoming
+            audio block into spherical harmonics sound field coefficients in real-time
+
+        Raises
+        ------
+        ValueError
+            in case an invalid value for the maximal spherical harmonics processing order is given
+        """
+        """
+        if self._sh_max_order is None or self._sh_max_order < 0:
+            raise ValueError(
+                f'Invalid value "{self._sh_max_order}" for spherical harmonics order.'
+            )
+
+        # adjust dtype
+        dtype = np.complex64 if self._irs_td.dtype == np.float32 else np.complex128
+
+        # calculate stacked SH orders and modes
+        sh_m = sfa.sph.mnArrays(nMax=self._sh_max_order)[0].astype(np.int16)
+        sh_n = sfa.sph.mnArrays(nMax=self._sh_max_order)[1].astype(np.int16)
+        
+        #[sh_m,sh_n] = sfa.sph.mnArrays(nMax=self._sh_max_order).astype(np.int16)
+
+        # calculate sh base functions, see `sound-field-analysis-py` `process.spatFT()` for
+        # reference
+        sh_m = np.delete(sh_m,-3)
+        sh_n = np.delete(sh_n,-3)
+        print(sh_m)
+        print(sh_n)
+        #sh_bases = scy.sph_harm(sh_m, sh_n, self._irs_grid.azimuth, self._irs_grid.colatitude)
+        mA, azA = np.meshgrid(sh_m, self._irs_grid.azimuth)
+        nA, coA = np.meshgrid(sh_n, self._irs_grid.colatitude)
+        print(nA)
+        print(coA)
+        sh_bases = sfa.sph.sph_harm(
+            m=mA,
+            n=nA,
+            az=azA,
+            co=coA,
+        ).astype(dtype)
+        print("sh_bases")
+        print(sh_bases) """ 
         # ignore underflow FloatingPointError in `numpy.matmul()`
         with np.errstate(under="ignore"):
             if self._sh_is_enforce_pinv or self._irs_grid.weight is None:
+            #if True:
                 # calculate pseudo inverse since no grid weights are given
                 sh_bases_weighted = np.linalg.pinv(sh_bases)
             else:
@@ -1283,7 +1360,8 @@ class FilterSetMiro(FilterSet):
                 sh_bases_weighted = np.conj(sh_bases).T * (
                     4 * np.pi * self._irs_grid.weight
                 )
-
+        #print("sh_bases_weighted")
+        #print(sh_bases_weighted)
         return FilterSetShConfig(sh_m, sh_bases_weighted, self._arir_config)
 
 class FilterSetShConfig(

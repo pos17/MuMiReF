@@ -179,7 +179,7 @@ class HeadTracker(SubProcess):
         Base function to set configuration parameters for the tracker process. Deriving classes
         need to override this function to implement the individual parameters.
         """
-        self._timeout = 1 / 60  # data send rate
+        self._timeout = 1 / 25  # data send rate
 
         self._logger.warning("... no tracker will be used.")
 

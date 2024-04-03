@@ -526,9 +526,26 @@ class JackRenderer(JackClient):
             audio block into spherical harmonics sound field coefficients in real-time
         """
         self._logger.info("gathering spherical harmonics configuration ...")
+        #self._logger.info("print configuration")
+        #self._logger.info(self._convolver._filter.get_sh_configuration())
+        #self._logger.info(self._convolver._filter.get_sh_configuration().sh_bases_weighted)
 
         # noinspection PyProtectedMember
         return self._convolver._filter.get_sh_configuration()
+
+    #def my_get_pre_renderer_sh_config(self):
+        """
+        Returns
+        -------
+        FilterSetShConfig
+            combined filter configuration with all necessary information to transform an incoming
+            audio block into spherical harmonics sound field coefficients in real-time
+        """
+    #    self._logger.info("gathering spherical harmonics configuration ...")
+    #    self._logger.info(self._convolver._filter.get_sh_configuration())
+    #    self._logger.info(self._convolver._filter.get_sh_configuration().sh_bases_weighted)
+        # noinspection PyProtectedMember
+    #    return self._convolver._filter.my_get_sh_configuration()
 
 
 class JackRendererBenchmark(JackRenderer):

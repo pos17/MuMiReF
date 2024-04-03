@@ -110,7 +110,7 @@ class OscRemote(object):
             add_mapping("volume_relative", "set_output_volume_relative_db")
             ## add_mapping("volume_port_relative", "set_output_volume_port_relative_db")
             ## add_mapping("delay", "set_input_delay_ms")
-            ## add_mapping("crossfade", "set_client_crossfade")  # see `JackRenderer`
+            add_mapping("crossfade", "set_client_crossfade")  # see `JackRenderer`
             ## add_mapping("passthrough", "set_client_passthrough")  # see `JackRenderer`
             ## add_mapping("order", "set_renderer_sh_order")  # see `JackRenderer`
             ## add_mapping("zero", "set_zero_position")  # see `HeadTracker`
