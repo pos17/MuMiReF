@@ -1,7 +1,8 @@
+from asyncio.log import logger
 from copy import copy
 from time import altzone
 from . import Convolver, FilterSet, tools
-from .convolver import AdjustableFdConvolver, AdjustableShConvolver
+from .convolver import AdjustableFdConvolver, AdjustableShConvolver, AdjustableShConvolverMeasuredEnc
 from .filter_set import FilterSetMiro, FilterSetShConfig, FilterSetSofa
 from .jack_client import JackClient
 
@@ -31,6 +32,9 @@ class JackRenderer(JackClient):
         sh_is_enforce_pinv=False,
         ir_trunc_db=None,
         is_prevent_resampling=False,
+        is_measured_encoding = False,
+        encoding_filter_name = None,
+        encoding_filter_type = None,
         ## azim_deg=0,
         ## elevs_deg = 0,
         *args,
@@ -75,7 +79,7 @@ class JackRenderer(JackClient):
         # set attributes
         self._is_passthrough = True
         self._convolver = None
-
+        self._logger.warning(f"measure encoding: {is_measured_encoding}")
         self._init_convolver(
             filter_name=filter_name,
             filter_type=filter_type,
@@ -85,6 +89,9 @@ class JackRenderer(JackClient):
             sh_is_enforce_pinv=sh_is_enforce_pinv,
             ir_trunc_db=ir_trunc_db,
             is_prevent_resampling=is_prevent_resampling,
+            is_measured_encoding = is_measured_encoding,
+            encoding_filter_name = encoding_filter_name,
+            encoding_filter_type = encoding_filter_type,
             ##azim_deg = azim_deg,
             ##elevs_deg = elevs_deg
         )
@@ -99,6 +106,9 @@ class JackRenderer(JackClient):
         sh_is_enforce_pinv,
         ir_trunc_db,
         is_prevent_resampling,
+        is_measured_encoding = False,
+        encoding_filter_name = None,
+        encoding_filter_type = None,
         ## azim_deg,
         ## elevs_deg
     ):
@@ -130,6 +140,7 @@ class JackRenderer(JackClient):
         is_prevent_resampling : bool
             if loaded filter should not be resampled
         """
+        filter_set_encoding = None 
         filter_set = FilterSet.create_instance_by_type(
             file_name=filter_name,
             file_type=filter_type,
@@ -137,12 +148,43 @@ class JackRenderer(JackClient):
             sh_is_enforce_pinv=sh_is_enforce_pinv,
 
         )
+        self._logger.info(f"measure encoding: {is_measured_encoding}")
+        if(is_measured_encoding):
+            if self._client.samplerate == 44100:
+                encoding_filter_name = "res/ConversionFilters/Dante/SM_D_TYPE_A_44100.wav"
+                encoding_filter_type = "ENCODING"
+            elif  self._client.samplerate == 48000:
+                encoding_filter_name = "res/ConversionFilters/Dante/SM_D_TYPE_A_48000.wav"
+                encoding_filter_type = "ENCODING"
+            elif  self._client.samplerate == 88200:
+                encoding_filter_name = "res/ConversionFilters/Dante/SM_D_TYPE_A_88200.wav"
+                encoding_filter_type = "ENCODING"
+            elif  self._client.samplerate == 96000:
+                encoding_filter_name = "res/ConversionFilters/Dante/SM_D_TYPE_A_96000.wav"
+                encoding_filter_type = "ENCODING"
+            elif  self._client.samplerate == 192000:
+                encoding_filter_name = "res/ConversionFilters/Dante/SM_D_TYPE_A_192000.wav"
+                encoding_filter_type = "ENCODING"
+            else:     
+                raise ValueError(
+                    "no standard samplerate for the system "
+                )
+            
+            self._logger.info(f"encoding filter name: {encoding_filter_name}")
+            filter_set_encoding = FilterSet.create_instance_by_type(
+                file_name = encoding_filter_name,
+                file_type = encoding_filter_type,
+                sh_max_order=sh_max_order,
+                sh_is_enforce_pinv=sh_is_enforce_pinv
+            )
+
         if filter_set is None:
             # no filter name or filter type given
             self._logger.warning("skipping filter load.")
             # use `_counter_dropout` as indicator if file was loaded
             self._counter_dropout = None
             return
+       
 
         filter_set.load(
             block_length=self._client.blocksize,
@@ -153,12 +195,30 @@ class JackRenderer(JackClient):
             is_prevent_resampling=is_prevent_resampling,
             is_prevent_logging=self._logger.disabled,
         )
+        if(is_measured_encoding):
+            if filter_set_encoding is None:
+                # no filter name or filter type given
+                self._logger.warning("skipping encoding filter load.")
+                # use `_counter_dropout` as indicator if file was loaded
+                self._counter_dropout = None
+                return
+            filter_set_encoding.load(
+                block_length=self._client.blocksize,
+                is_single_precision= False, #self._is_single_precision,
+                logger=self._logger,
+                ir_trunc_db=ir_trunc_db,
+                check_fs=self._client.samplerate,
+                is_prevent_resampling=is_prevent_resampling,
+                is_prevent_logging=self._logger.disabled,
+            )
 
         self._convolver = Convolver.create_instance_by_filter_set(
             filter_set=filter_set,
             block_length=self._client.blocksize,
             source_positions=source_positions,
             shared_tracker_data=shared_tracker_data,
+            is_measured_encoding = is_measured_encoding,
+            filter_set_encoding = filter_set_encoding,
             ## azim_deg=azim_deg,
             ## elevs_deg=elevs_deg
         )
@@ -446,7 +506,7 @@ class JackRenderer(JackClient):
             "applying spherical harmonics configuration and pre-calculating components ..."
         )
 
-        if type(self._convolver) is not AdjustableShConvolver:
+        if type(self._convolver) is not AdjustableShConvolver and type(self._convolver) is not AdjustableShConvolverMeasuredEnc:
             # noinspection PyProtectedMember
             raise ValueError(
                 f"convolver type {type(self._convolver)} of filter {type(self._convolver._filter)} "
