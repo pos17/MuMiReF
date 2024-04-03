@@ -1,0 +1,32 @@
+clients_num: 1
+BLOCK_LENGTH: 2048
+SH_MAX_ORDER: 2 
+IR_TRUNCATION_LEVEL: -200
+REMOTE_OSC_PORT: 5100
+monitoring:
+    name: monitoring
+    starting_output_channel: 64
+    output_channel_count: 2  
+    osc_port: 7000
+microphones: 
+   - 
+      name: mic1
+      starting_input_channel: 2
+      input_channel_count: 8
+      starting_output_channel: 54
+      output_channel_count: 2
+      azim_deg: 0
+      osc_port: 7000
+      hrir_type: "HRIR_SOFA"
+      hrir_file: "res/HRIR/KEMAR_SADIE2/D2_48K_24bit_256tap_FIR_SOFA.sofa"
+      hrir_delay: 0
+      hrir_level: 0
+      arir_type: "AS_MIRO"
+      arir_file: "res/ARIR/RT_calib_SM8polimi_struct_updated_no_scatter.mat"
+      arir_delay: 0
+      arir_level: 0
+      compensation: "MODAL_RADIAL_FILTER+SPHERICAL_HEAD_FILTER"
+      is_measured_encoding: False
+      encoding_filter_name: "None"
+      encoding_filter_type: "None"
+   
